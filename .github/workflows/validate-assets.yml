@@ -1,0 +1,29 @@
+name: Validate Assets
+
+# The integrity gate. Runs on every push and pull request: fails on missing or
+# broken metadata, invalid JSON, and orphaned derived files; warns (without
+# failing) on duplicate content.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - name: Validate repository
+        run: python Scripts/validate_assets.py

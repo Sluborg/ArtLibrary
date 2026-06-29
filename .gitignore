@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Release bundles (built in CI, never committed)
+dist/
+
+# Local agent/session state
+.claude/
+
+# OS noise
+.DS_Store
+Thumbs.db

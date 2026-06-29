@@ -1,5 +1,11 @@
 name: Upload asset
 
+# Receives a base64-chunked asset as a JSON payload, reconstructs it, verifies
+# its hash, optimizes it, embeds metadata, optionally builds thumbnail/favicon,
+# then commits and pushes. All logic lives in Scripts/artlib; this workflow only
+# wires inputs to the entrypoint. The resulting push triggers Asset Index and
+# Validate Assets, so the index/report self-heal without a manual step.
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,257 +20,33 @@ permissions:
 jobs:
   upload:
     runs-on: ubuntu-latest
-    env:
-      PAYLOAD_JSON: ${{ inputs.payload }}
-
     steps:
-      - name: Parse payload
-        id: payload
+      - name: Determine target branch
+        id: branch
         shell: bash
+        env:
+          PAYLOAD_JSON: ${{ inputs.payload }}
         run: |
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import sys
-
-          raw = os.environ.get("PAYLOAD_JSON", "")
-          if not raw:
-              raise SystemExit("Missing workflow payload")
-
-          payload = json.loads(raw)
-
-          required = ["branch", "path", "commit_message", "chunks"]
-          for key in required:
-              if key not in payload:
-                  raise SystemExit(f"Missing required key: {key}")
-
-          branch = payload["branch"]
-          path = payload["path"]
-          commit_message = payload["commit_message"]
-          chunks = payload["chunks"]
-
-          if not isinstance(chunks, list) or not chunks:
-              raise SystemExit("chunks must be a non-empty array")
-
-          if not re.match(r"^[A-Za-z0-9._/\-]+$", path):
-              raise SystemExit("path contains unsupported characters")
-
-          if path.startswith("/") or ".." in path.split("/"):
-              raise SystemExit("path must be repository-relative and may not contain '..'")
-
-          if not re.match(r"^[A-Za-z0-9._/\-]+$", branch):
-              raise SystemExit("branch contains unsupported characters")
-
-          metadata = payload.get("metadata", {})
-          if metadata is None:
-              metadata = {}
-          if not isinstance(metadata, dict):
-              raise SystemExit("metadata must be an object when provided")
-
-          options = payload.get("options", {})
-          if options is None:
-              options = {}
-          if not isinstance(options, dict):
-              raise SystemExit("options must be an object when provided")
-
-          with open("file.b64", "w", encoding="utf-8") as f:
-              f.write("".join(chunks))
-
-          with open("metadata.input.json", "w", encoding="utf-8") as f:
-              json.dump(metadata, f, indent=2, ensure_ascii=False)
-              f.write("\n")
-
-          with open("options.json", "w", encoding="utf-8") as f:
-              json.dump(options, f, indent=2, ensure_ascii=False)
-              f.write("\n")
-
-          output = os.environ["GITHUB_OUTPUT"]
-          with open(output, "a", encoding="utf-8") as out:
-              out.write(f"branch={branch}\n")
-              out.write(f"path={path}\n")
-              out.write(f"commit_message={commit_message}\n")
-              out.write(f"expected_sha256={payload.get('sha256', '')}\n")
-              out.write(f"optimize={str(options.get('optimize', True)).lower()}\n")
-              out.write(f"thumbnail={str(options.get('thumbnail', False)).lower()}\n")
-              out.write(f"favicon={str(options.get('favicon', False)).lower()}\n")
-              out.write(f"allow_overwrite={str(options.get('allow_overwrite', False)).lower()}\n")
-          PY
+          branch="$(python3 -c 'import json,os,re,sys; b=json.loads(os.environ["PAYLOAD_JSON"]).get("branch",""); sys.exit("bad branch") if not re.match(r"^[A-Za-z0-9._/\-]+$", b) else print(b)')"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
 
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.payload.outputs.branch }}
+          ref: ${{ steps.branch.outputs.branch }}
 
-      - name: Install image tooling
-        if: ${{ steps.payload.outputs.optimize == 'true' || steps.payload.outputs.thumbnail == 'true' || steps.payload.outputs.favicon == 'true' }}
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick optipng jpegoptim webp
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Decode asset
-        id: decode
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          mkdir -p "$(dirname "$target")"
+      - name: Install Python dependencies
+        run: pip install -r Scripts/requirements.txt
 
-          if [ -e "$target" ] && [ "${{ steps.payload.outputs.allow_overwrite }}" != "true" ]; then
-            echo "Target already exists and allow_overwrite is false: $target"
-            exit 1
-          fi
+      - name: Setup image tools
+        uses: ./.github/actions/setup-image-tools
 
-          base64 --decode file.b64 > "$target"
-
-          actual_sha="$(sha256sum "$target" | awk '{print $1}')"
-          expected_sha="${{ steps.payload.outputs.expected_sha256 }}"
-          if [ -n "$expected_sha" ] && [ "$actual_sha" != "$expected_sha" ]; then
-            echo "SHA-256 mismatch"
-            echo "expected=$expected_sha"
-            echo "actual=$actual_sha"
-            exit 1
-          fi
-
-          echo "sha256=$actual_sha" >> "$GITHUB_OUTPUT"
-          echo "bytes=$(wc -c < "$target" | tr -d ' ')" >> "$GITHUB_OUTPUT"
-
-      - name: Optimize image
-        if: ${{ steps.payload.outputs.optimize == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          ext="${target##*.}"
-          lower="$(echo "$ext" | tr '[:upper:]' '[:lower:]')"
-
-          case "$lower" in
-            png)
-              optipng -quiet -o2 "$target" || true
-              ;;
-            jpg|jpeg)
-              jpegoptim --strip-all --all-progressive "$target" || true
-              ;;
-            webp)
-              cwebp -quiet "$target" -o "$target.tmp.webp" && mv "$target.tmp.webp" "$target" || true
-              ;;
-            *)
-              echo "No optimizer configured for .$lower"
-              ;;
-          esac
-
-      - name: Generate thumbnail
-        if: ${{ steps.payload.outputs.thumbnail == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          dir="$(dirname "$target")"
-          base="$(basename "$target")"
-          name="${base%.*}"
-          ext="${base##*.}"
-          thumb="$dir/${name}.thumb.${ext}"
-          magick "$target" -resize 256x256 "$thumb"
-
-      - name: Generate favicon
-        if: ${{ steps.payload.outputs.favicon == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          dir="$(dirname "$target")"
-          base="$(basename "$target")"
-          name="${base%.*}"
-          magick "$target" -resize 16x16 "$dir/${name}-16.png"
-          magick "$target" -resize 32x32 "$dir/${name}-32.png"
-          magick "$target" -resize 48x48 "$dir/${name}-48.png"
-
-      - name: Write metadata sidecar
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          meta="${target}.metadata.json"
-          optimized_sha="$(sha256sum "$target" | awk '{print $1}')"
-          optimized_bytes="$(wc -c < "$target" | tr -d ' ')"
-
-          python3 - <<'PY'
-          import json
-          import os
-          from datetime import datetime, timezone
-
-          target = os.environ["TARGET"]
-          meta_path = os.environ["META_PATH"]
-          repository = os.environ["GITHUB_REPOSITORY"]
-          branch = os.environ["BRANCH"]
-          sha256 = os.environ["OPTIMIZED_SHA"]
-          bytes_size = int(os.environ["OPTIMIZED_BYTES"])
-
-          with open("metadata.input.json", "r", encoding="utf-8") as f:
-              user_metadata = json.load(f)
-
-          metadata = {
-              "path": target,
-              "repository": repository,
-              "branch": branch,
-              "sha256": sha256,
-              "bytes": bytes_size,
-              "created_at": datetime.now(timezone.utc).isoformat(),
-              "source": "github-actions-upload-asset",
-              "user_metadata": user_metadata,
-              "raw_url": f"https://raw.githubusercontent.com/{repository}/{branch}/{target}",
-              "github_url": f"https://github.com/{repository}/blob/{branch}/{target}"
-          }
-
-          with open(meta_path, "w", encoding="utf-8") as f:
-              json.dump(metadata, f, indent=2, ensure_ascii=False)
-              f.write("\n")
-          PY
+      - name: Upload asset
         env:
-          TARGET: ${{ steps.payload.outputs.path }}
-          META_PATH: ${{ steps.payload.outputs.path }}.metadata.json
-          BRANCH: ${{ steps.payload.outputs.branch }}
-          OPTIMIZED_SHA: ${{ steps.decode.outputs.sha256 }}
-          OPTIMIZED_BYTES: ${{ steps.decode.outputs.bytes }}
-
-      - name: Commit asset
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="${{ steps.payload.outputs.path }}"
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add "$target" "$target.metadata.json"
-
-          if [ "${{ steps.payload.outputs.thumbnail }}" = "true" ]; then
-            dir="$(dirname "$target")"
-            base="$(basename "$target")"
-            name="${base%.*}"
-            ext="${base##*.}"
-            git add "$dir/${name}.thumb.${ext}"
-          fi
-
-          if [ "${{ steps.payload.outputs.favicon }}" = "true" ]; then
-            dir="$(dirname "$target")"
-            base="$(basename "$target")"
-            name="${base%.*}"
-            git add "$dir/${name}-16.png" "$dir/${name}-32.png" "$dir/${name}-48.png"
-          fi
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git commit -m "${{ steps.payload.outputs.commit_message }}"
-          git push origin "${{ steps.payload.outputs.branch }}"
-
-      - name: Print asset URLs
-        shell: bash
-        run: |
-          target="${{ steps.payload.outputs.path }}"
-          repo="${GITHUB_REPOSITORY}"
-          branch="${{ steps.payload.outputs.branch }}"
-          echo "GitHub URL: https://github.com/${repo}/blob/${branch}/${target}"
-          echo "Raw URL: https://raw.githubusercontent.com/${repo}/${branch}/${target}"
+          ARTLIB_PAYLOAD: ${{ inputs.payload }}
+        run: python Scripts/upload_asset.py

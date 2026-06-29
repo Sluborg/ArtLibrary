@@ -1,0 +1,28 @@
+name: Cleanup
+
+# Manually removes orphaned metadata sidecars and thumbnails (whose parent
+# asset is gone), then rebuilds the index and report so the repository returns
+# to a consistent state. Never deletes asset bytes.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - name: Clean up and rebuild
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: python Scripts/cleanup_repo.py --commit

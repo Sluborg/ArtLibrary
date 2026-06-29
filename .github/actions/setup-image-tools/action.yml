@@ -1,0 +1,14 @@
+name: Setup image tools
+description: >
+  Install the system image tooling (ImageMagick, optipng, jpegoptim, webp) used
+  by ArtLibrary's optimization, thumbnail and favicon steps. Centralised here so
+  every workflow installs the exact same set with one line.
+
+runs:
+  using: composite
+  steps:
+    - name: Install image tooling
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y imagemagick optipng jpegoptim webp

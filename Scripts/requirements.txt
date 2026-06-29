@@ -1,0 +1,6 @@
+# ArtLibrary Python dependencies.
+# Pillow is the only third-party requirement; everything else uses the stdlib
+# (hashlib, json, base64, subprocess, argparse, datetime). System image tools
+# (ImageMagick, optipng, jpegoptim, webp) are installed via the
+# .github/actions/setup-image-tools composite action, not pip.
+Pillow>=10.3,<12

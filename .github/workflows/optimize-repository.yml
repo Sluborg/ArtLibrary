@@ -1,0 +1,30 @@
+name: Optimize Repository
+
+# Manually re-optimizes every asset losslessly (PNG/JPEG/WebP/SVG) using the
+# same optimizers as Upload, preserving embedded metadata, and commits the
+# savings.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - uses: ./.github/actions/setup-image-tools
+
+      - name: Optimize and commit
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: python Scripts/optimize_repo.py --commit
