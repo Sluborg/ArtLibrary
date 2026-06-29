@@ -1,0 +1,58 @@
+name: Upload binary file
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "JSON payload with branch, path, commit_message, and base64 chunks"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Parse payload
+        id: payload
+        shell: bash
+        run: |
+          echo '${{ inputs.payload }}' > payload.json
+          python3 - <<'PY'
+          import json, os
+          payload = json.load(open("payload.json", "r", encoding="utf-8"))
+          for key in ["branch", "path", "commit_message", "chunks"]:
+              if key not in payload:
+                  raise SystemExit(f"Missing required key: {key}")
+          if not isinstance(payload["chunks"], list) or not payload["chunks"]:
+              raise SystemExit("chunks must be a non-empty array")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"branch={payload['branch']}\n")
+              out.write(f"path={payload['path']}\n")
+              out.write(f"commit_message={payload['commit_message']}\n")
+          with open("file.b64", "w", encoding="utf-8") as f:
+              f.write("".join(payload["chunks"]))
+          PY
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.payload.outputs.branch }}
+
+      - name: Decode file
+        shell: bash
+        run: |
+          mkdir -p "$(dirname "${{ steps.payload.outputs.path }}")"
+          base64 --decode file.b64 > "${{ steps.payload.outputs.path }}"
+
+      - name: Commit file
+        shell: bash
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add "${{ steps.payload.outputs.path }}"
+          git commit -m "${{ steps.payload.outputs.commit_message }}" || exit 0
+          git push origin "${{ steps.payload.outputs.branch }}"
