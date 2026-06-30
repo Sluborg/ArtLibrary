@@ -69,3 +69,20 @@ processing reads through the changed object.
 - [ ] Material identifies the resource; reads in grayscale too.
 - [ ] Only Faith emits light; all others are non-emissive.
 - [ ] Gold/currency look matches the gp used across the UI and payouts.
+
+## Resource-icon worklist
+
+Standalone resource icons, drawn as their own pieces (derived from the top-badge
+icons on the node design sheet, whose look is approved). Placeholders for now. This
+set is **proposed**, pending ResourceType ratification.
+
+| Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
+| --- | --- | --- | --- | --- | --- |
+| `icon-resource-wood` | Wood | Stacked oiled logs / cut timber (Lumber Camp) | needed (placeholder) | `Icons/AssetReport/icon-resource-wood.png` | |
+| `icon-resource-stone` | Stone | Cut grey ashlar block (Quarry) | needed (placeholder) | `Icons/AssetReport/icon-resource-stone.png` | |
+| `icon-resource-food` | Food / Grain | Wheat sheaf; the harvest (Farmland) | needed (placeholder) | `Icons/AssetReport/icon-resource-food.png` | |
+| `icon-resource-iron` | Iron / Ore | Raw ore → ingot (Iron Mine) | needed (placeholder) | `Icons/AssetReport/icon-resource-iron.png` | |
+| `icon-resource-gold` | Gold (gp) | Coin stack / nugget; the currency (Gold Mine, Market) | needed (placeholder) | `Icons/AssetReport/icon-resource-gold.png` | |
+| `icon-resource-knowledge` | Knowledge | Open tome / scroll; research (Academy) | needed (placeholder) | `Icons/AssetReport/icon-resource-knowledge.png` | |
+| `icon-resource-faith` | Faith | Radiant star / holy light — the emissive resource (Temple) | needed (placeholder) | `Icons/AssetReport/icon-resource-faith.png` | |
+| `icon-resource-approval` | Approval / Influence | Wax seal / stamp / signed writ; bureaucratic currency (Civil service) | needed (placeholder) | `Icons/AssetReport/icon-resource-approval.png` | |
