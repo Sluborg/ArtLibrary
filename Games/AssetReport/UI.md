@@ -105,4 +105,7 @@ name + level on top of it.
 
 | Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
 | --- | --- | --- | --- | --- | --- |
-| `ui-building-nameplate` | Building Nameplate | One reusable frame/plaque the game overlays each building's NAME + LEVEL onto — one art piece, not one per building; bakes no specific text | needed (placeholder) | `UI/AssetReport/ui-building-nameplate.png` | |
+| `ui-building-nameplate` | Building Nameplate | One reusable frame/plaque the game overlays each building's NAME + LEVEL onto — one art piece, not one per building; bakes no specific text | needed (placeholder) | `Assets/AssetReport/ui-building-nameplate.png` | |
+
+Tags: `ui`, `nameplate`, `frame`. Stored under `Assets/AssetReport/` (an indexed
+`ASSET_DIR`) so the placeholder gets a real `raw_url` when produced.
