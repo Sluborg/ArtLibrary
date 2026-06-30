@@ -181,7 +181,7 @@ as one system.
 | --- | --- | --- |
 | 1 | **Base Ring** | A circular **gold ring**, **consistent for all** nodes. Polished engraved-plate gold with the warm key light from upper-left; a sprig of green **laurel/foliage** clasps the lower-left and lower-right of the ring. The ring is the shared frame. |
 | 2 | **Themed Scene** | The building itself — a **3/4 isometric-from-above** painted scene that **sits inside and slightly overlaps/breaks the top edge of the ring** so it reads as three-dimensional. Stands on a **small rounded terrain base** (earth/grass/stone) at the foot of the ring. Only this layer changes per building. |
-| 3 | **Top Badge** | A small **circular gold-rimmed badge** centered at the **top** of the ring, slightly overlapping it, carrying the **node-type identifier icon** (hammer, stone, wheat, tome, scales, …). Military/Defense nodes instead use a **red heraldic banner-shield badge** — the badge *frame shape* encodes the category. See [`Icons.md`](Icons.md). |
+| 3 | **Top Badge** | A small **circular gold-rimmed badge** centered at the **top** of the ring, slightly overlapping it, carrying the **node-type identifier icon** (hammer, stone, wheat, tome, scales, …). **Two exceptions, both shown on the reference sheet:** (a) **Military/Defense** nodes use a **red heraldic banner-shield badge** instead — the badge *frame shape* encodes the category; (b) **Civic/Player** nodes (Home Keep, Grand Citadel, Settlement) carry their type identity as a **blue-and-gold pennant flown in the building scene** rather than a circular top badge — the `Buildings.md` roster lists this as their "Blue pennant" top-badge entry. When a civic node does use a circular badge, it carries the faction sigil/star. See [`Icons.md`](Icons.md). |
 | 4 | **Rim Light** | A warm, "epic" **rim light** along the building's upper edges, lifting it off the background. *Epic warm theme*, consistent across all nodes. |
 
 > **Backdrop:** a **deep near-black warm field** so the gold ring and rim light pop.
@@ -220,8 +220,9 @@ join key between art and game code; it never changes once published.
 | Building map node | `node-<slug>.png` | `node-home-keep.png` | `Illustrations/AssetReport/` |
 | Reference / moodboard | `<slug>.png` | `node-design-sheet.png` | `Illustrations/AssetReport/` |
 | Type badge | `badge-<slug>.png` | `badge-lumber.png` | `Icons/AssetReport/` |
-| Resource icon | `resource-<type>.png` | `resource-wood.png` | `Icons/AssetReport/` |
-| UI icon | `ui-<name>.png` | `ui-stamp-approved.png` | `Icons/AssetReport/` |
+| Resource icon | `icon-resource-<type>.png` | `icon-resource-wood.png` | `Icons/AssetReport/` |
+| UI icon (small glyph) | `ui-<name>.png` | `ui-stamp-approved.png` | `Icons/AssetReport/` |
+| UI frame / plaque | `ui-<name>.png` | `ui-building-nameplate.png` | `Assets/AssetReport/` |
 
 > **Why not under `Games/`?** The DAM's `discover_assets()` only walks the asset
 > folders (`Assets, Icons, Illustrations, Wallpapers, Textures, Generated`). Files
@@ -232,14 +233,14 @@ join key between art and game code; it never changes once published.
 
 ```jsonc
 {
-  "kind": "wallpaper",                 // REQUIRED identity (icon|illustration|wallpaper|texture|…)
-  "title": "Asset Report — Title Screen",
-  "description": "…",
+  "kind": "wallpaper",                 // REQUIRED identity (icon|illustration|wallpaper|texture|...)
+  "title": "Asset Report - Title Screen",
+  "description": "...",
   "collection": "AssetReport",         // groups every Asset Report visual
   "tags": ["asset-report", "key-art", "title-screen"],  // always include "asset-report"
   "license": "internal-game-art",
   "generator": "unknown",              // be honest; never fabricate a seed
-  "prompt": "unknown — original prompt not recorded"
+  "prompt": "unknown - original prompt not recorded"
 }
 ```
 
@@ -251,8 +252,13 @@ join key between art and game code; it never changes once published.
 - **Tags** always include `asset-report`, plus the family/type (`building-node`,
   `resource`, `ui`, `badge`) and the slug where useful.
 - **Provenance honesty:** if the true prompt/generator is unknown, record
-  `"unknown"` / `"unknown — original prompt not recorded"`. A plausible-but-fake
+  `"unknown"` / `"unknown - original prompt not recorded"`. A plausible-but-fake
   prompt poisons the DAM's reproducibility contract.
+- **Keep embedded metadata ASCII-safe.** JPEG EXIF (`ImageDescription`) is not
+  Unicode-safe, so non-ASCII characters (em dashes, curly quotes) round-trip to
+  `?` in the index. Use plain ASCII punctuation in stored titles/descriptions/prompts;
+  PNG/SVG embed UTF-8 fine, but keep them ASCII too so a visual's metadata reads
+  identically across formats.
 
 ---
 
