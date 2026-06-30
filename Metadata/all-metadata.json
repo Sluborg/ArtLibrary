@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "schema_version": 1,
+    "kind": "test-image",
+    "title": "Smoke test 8x8 icon",
+    "description": "Tiny generated PNG used to test ArtLibrary upload, metadata, indexing and automation flow.",
+    "prompt": "Programmatically generated 8x8 checker icon for smoke testing.",
+    "generator": "Lubot Python smoke test",
+    "created": "2026-06-30T00:04:21.520705+00:00",
+    "license": "internal-test",
+    "tags": [
+      "smoke-test",
+      "automation",
+      "tiny-icon"
+    ],
+    "original_filename": "smoke-test-8x8.png",
+    "collection": null,
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Generated/smoke-test-8x8.png",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "main",
+    "sha256": "33c81a7a689d437cb91221d83f90ab37ca074c61b0e7d000c47eef9584992842",
+    "bytes": 619,
+    "dimensions": [
+      8,
+      8
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png",
+    "thumbnail": "Generated/smoke-test-8x8.thumb.png",
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
+  }
+]
