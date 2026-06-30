@@ -52,12 +52,14 @@ Each building carries one simple, silhouette-first glyph:
 | Barracks | Crossed swords | **Red heraldic shield** |
 | Archer Tower | Bow | **Red heraldic shield** |
 | Wall | Shield | **Red heraldic shield** |
-| Home Keep / Settlement / Citadel | Faction sigil / star on banner | Pennant / civic mark |
+| Home Keep / Settlement / Citadel | Faction sigil / star | Circular gold |
 
 When adding a new building, choose a glyph that is (a) a single object, (b) an
 unmistakable silhouette, and (c) not already in use. Tools imply resources;
 weapons imply military; civic symbols (book, scales, star) imply civic/economy/
-divine.
+divine. Civic nodes keep the **circular gold** badge like everything else — the
+pennant/banner that marks a player building lives in the *building scene*, not in
+a special badge frame, so the whole set teaches one consistent badge grammar.
 
 ## How icons communicate meaning
 
@@ -82,11 +84,16 @@ objects, not modern symbols:
 
 - **Stamp** (approve/deny), **wax seal**, **quill**, **ledger/clipboard**,
   **scroll/writ**, **abacus**, **coin (gp)**, **quest scroll**, **inkwell**,
-  **filing tray ("IN"/"PENDING")**, **audit notice**.
+  **filing tray** (the "IN" / "PENDING" tray), **audit notice**.
+- **No baked-in text on any of these icons.** Where a prop would carry a label in
+  the fiction (a tray's "IN", a stamp's word, a ledger's heading), that lettering
+  is added by the live UI layer as an overlay — the icon artwork itself stays
+  text-free, per the style guide's hard limit.
 - Status stamps are a sub-set with strong color meaning: **APPROVED** (green
-  wax/ink), **DENIED** (red), **PENDING** (neutral), **OVERDUE** (warning).
-  These may carry the only baked-in text the game uses *inside the diegetic UI*,
-  but the icons themselves stay text-free per the style guide.
+  wax/ink), **DENIED** (red), **PENDING** (neutral), **OVERDUE** (warning). The
+  stamp *artwork* stays text-free per the style guide's hard limit — render the
+  seal, frame, and color only. The APPROVED/DENIED/PENDING wording is added by
+  the live UI layer as a text overlay, never baked into the icon.
 
 ## Consistency checklist for an icon
 
