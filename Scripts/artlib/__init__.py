@@ -21,11 +21,14 @@ Public surface (import as ``from artlib import ...``):
     reporting    repository health report
     validation   push/PR validation gate
     gitutil      automated commit/push helpers
-    payload      upload payload parsing + chunk reconstruction
+    payload      upload payload parsing + chunk reconstruction (single + batch)
+    batch        upload orchestration shared by single + batch entrypoints
+    summary      upload result summary, result file, and step summary
     cli          shared entrypoint helpers
 """
 
 from . import (  # noqa: F401
+    batch,
     cli,
     constants,
     dedupe,
@@ -39,11 +42,13 @@ from . import (  # noqa: F401
     paths,
     payload,
     reporting,
+    summary,
     urls,
     validation,
 )
 
 __all__ = [
+    "batch",
     "cli",
     "constants",
     "dedupe",
@@ -57,6 +62,7 @@ __all__ = [
     "paths",
     "payload",
     "reporting",
+    "summary",
     "urls",
     "validation",
 ]

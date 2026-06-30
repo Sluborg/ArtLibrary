@@ -1,18 +1,17 @@
-name: Upload asset
+name: Upload assets (batch)
 
-# Receives a base64-chunked asset as a JSON payload, reconstructs it, verifies
-# its hash, optimizes it, embeds metadata, optionally builds thumbnail/favicon,
-# rebuilds the index/report, validates, then commits and pushes. A single upload
-# is a batch of one: it shares Scripts/upload_assets_batch.py's implementation,
-# so it writes the same machine-readable result (Reports/latest-upload-result.json)
-# and GitHub step summary. All logic lives in Scripts/artlib; this workflow only
-# wires the input to the entrypoint.
+# Receives many base64-chunked assets in one JSON payload, reconstructs each,
+# verifies hashes, optimizes, embeds metadata, optionally builds
+# thumbnails/favicons, rebuilds the index/report, validates, then commits ALL of
+# them in a single commit. All logic lives in Scripts/artlib; this workflow only
+# wires the input to the entrypoint. Preferred over many single dispatches when
+# Lubot generates multiple assets — one run, one commit, one verified result.
 
 on:
   workflow_dispatch:
     inputs:
       payload:
-        description: "JSON payload for binary asset upload"
+        description: "JSON batch payload ({branch, commit_message, assets:[...]})"
         required: true
         type: string
 
@@ -48,7 +47,7 @@ jobs:
       - name: Setup image tools
         uses: ./.github/actions/setup-image-tools
 
-      - name: Upload asset
+      - name: Upload asset batch
         env:
           ARTLIB_PAYLOAD: ${{ inputs.payload }}
-        run: python Scripts/upload_asset.py
+        run: python Scripts/upload_assets_batch.py
