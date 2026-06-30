@@ -58,8 +58,8 @@ is the north star for its quieter ones.
 - **Annotations / stamps:** a typewriter-ish or hand-stamped mono for form fields,
   ledger columns, and rubber-stamp words (**DENIED**, **APPROVED**, **PENDING**).
 - Type should feel **printed, inked, or stamped onto paper** — never floating,
-  glassy, or neon. (Note: per the style guide, **icon and illustration assets
-  carry no baked-in text**; lettering lives in the live UI layer.)
+  glassy, or neon. (Note: per the style guide, **icon and illustration artwork
+  carries no baked-in text**; lettering lives in the live UI layer.)
 
 ## Decorations
 

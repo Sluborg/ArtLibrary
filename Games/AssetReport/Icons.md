@@ -86,7 +86,7 @@ objects, not modern symbols:
 - Status stamps are a sub-set with strong color meaning: **APPROVED** (green
   wax/ink), **DENIED** (red), **PENDING** (neutral), **OVERDUE** (warning).
   These may carry the only baked-in text the game uses *inside the diegetic UI*,
-  but icon assets themselves stay text-free per the style guide.
+  but the icons themselves stay text-free per the style guide.
 
 ## Consistency checklist for an icon
 
@@ -95,5 +95,5 @@ objects, not modern symbols:
 - [ ] Color key matches category and only reinforces the frame.
 - [ ] Gold-rim weight, dark fill, and rim light match the rest of the set.
 - [ ] Only divine/arcane glyphs (e.g. the Temple star, Faith) emit light.
-- [ ] No baked-in text on the asset (status-stamp lettering is a UI decision, not
-      an icon asset).
+- [ ] No baked-in text on the icon (status-stamp lettering is a UI decision, not
+      part of the icon artwork).

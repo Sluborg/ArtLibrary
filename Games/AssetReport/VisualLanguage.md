@@ -78,7 +78,7 @@ Before shipping any *Asset Report* visual, confirm:
       reads in grayscale.
 - [ ] Pre-industrial medieval; no sci-fi, steampunk, modern-office, or grimdark
       contamination.
-- [ ] No baked-in text on the asset; one clear subject; room to breathe.
+- [ ] No baked-in text on the artwork; one clear subject; room to breathe.
 
 ## What this game is NOT
 
