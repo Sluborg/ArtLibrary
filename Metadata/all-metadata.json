@@ -19,15 +19,15 @@
     "embeddings": null,
     "path": "Generated/smoke-test-8x8.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "33c81a7a689d437cb91221d83f90ab37ca074c61b0e7d000c47eef9584992842",
     "bytes": 619,
     "dimensions": [
       8,
       8
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Generated/smoke-test-8x8.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Generated/smoke-test-8x8.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png",
     "thumbnail": "Generated/smoke-test-8x8.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -52,15 +52,15 @@
     "embeddings": null,
     "path": "Generated/testA.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "e92810152cdd2702890fee0b518609c6f8131347cda19ae0d0efc8fc7542d8a6",
     "bytes": 460,
     "dimensions": [
       8,
       8
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Generated/testA.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Generated/testA.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testA.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testA.png",
     "thumbnail": "Generated/testA.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -85,15 +85,15 @@
     "embeddings": null,
     "path": "Generated/testB.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "70fc4796180c106b8edf8b81b345744617ae83eccf78eade07a380262c132cd3",
     "bytes": 460,
     "dimensions": [
       8,
       8
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Generated/testB.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Generated/testB.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testB.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testB.png",
     "thumbnail": "Generated/testB.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -118,15 +118,15 @@
     "embeddings": null,
     "path": "Generated/testC.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "429d49c57ae1dc334d3285e68cd29a01ed3e728429537b16014bd52aba2594e0",
     "bytes": 460,
     "dimensions": [
       8,
       8
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Generated/testC.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Generated/testC.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testC.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testC.png",
     "thumbnail": "Generated/testC.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -157,15 +157,15 @@
     "embeddings": null,
     "path": "Illustrations/AssetReport/map-overworld.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d",
     "bytes": 2874448,
     "dimensions": [
       1536,
       1024
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Illustrations/AssetReport/map-overworld.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Illustrations/AssetReport/map-overworld.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/map-overworld.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png",
     "thumbnail": null,
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -191,15 +191,15 @@
     "embeddings": null,
     "path": "Illustrations/AssetReport/node-design-sheet.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "f351d19f69386261dc00121c8c81a3798f13b304a59099b28c0a3a45c64d293b",
     "bytes": 2122099,
     "dimensions": [
       1536,
       1024
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Illustrations/AssetReport/node-design-sheet.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Illustrations/AssetReport/node-design-sheet.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/node-design-sheet.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/node-design-sheet.png",
     "thumbnail": null,
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
@@ -226,15 +226,15 @@
     "embeddings": null,
     "path": "Wallpapers/AssetReport/title-screen.jpg",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "claude/assetreport-gameartbible-afopwc",
+    "branch": "main",
     "sha256": "7f962ce8f5b1ce9a326041a2e3055e7cb4f0f0726127a5e6141b1be6b597e6cf",
     "bytes": 1533965,
     "dimensions": [
       1080,
       2115
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/assetreport-gameartbible-afopwc/Wallpapers/AssetReport/title-screen.jpg",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/assetreport-gameartbible-afopwc/Wallpapers/AssetReport/title-screen.jpg",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Wallpapers/AssetReport/title-screen.jpg",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Wallpapers/AssetReport/title-screen.jpg",
     "thumbnail": null,
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
