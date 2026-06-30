@@ -39,8 +39,9 @@ from understanding the brief to returning permanent links.
 6. **Verify uploads.** After uploading, confirm each approved visual actually
    landed — the file, the index, and the upload result all agree.
 
-7. **Return permanent links.** Hand back the permanent GitHub links for the
-   verified visuals. Those links are the deliverable.
+7. **Return permanent links.** Hand back each verified visual's permanent
+   **`raw_url`** (`https://raw.githubusercontent.com/...`) — the fetchable image
+   bytes, not the blob page. Those raw links are the deliverable.
 
 ## The one rule
 

@@ -56,7 +56,10 @@ Return GitHub URLs
    the index, and the upload result must all agree.
 
 8. **Return GitHub URLs.** Return the permanent GitHub URLs for the verified
-   visuals. Those links are the deliverable.
+   visuals. Specifically, return each visual's **`raw_url`**
+   (`https://raw.githubusercontent.com/...`) from the upload result — the
+   fetchable image bytes a client can load directly — not the `github_url` blob
+   page. Those raw links are the deliverable.
 
 ## Rules
 
