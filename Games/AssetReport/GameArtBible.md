@@ -203,6 +203,32 @@ props — full per-building spec and the needed/done worklist live in
 
 ---
 
+## Map / overworld backdrop (PROPOSED candidate)
+
+![Asset Report — world map (proposed candidate)](../../Illustrations/AssetReport/map-overworld.png)
+
+> **PROPOSED — not approved canon.** A candidate overworld/world map: the painterly
+> oblique birds-eye continent that the building [map nodes](#node-construction-system-canonical--reproduce-exactly)
+> sit on. Committed as an indexed DAM visual so it can be referenced and iterated on;
+> **pending Stefan's sign-off** before it becomes the canonical board.
+>
+> - **Repo path:** `Illustrations/AssetReport/map-overworld.png` · **kind:** `illustration` · **collection:** `AssetReport`
+> - **`raw_url`:** `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png`
+
+**Fit notes (for iteration):**
+- **On-brand:** ornate gold border + compass rose echo the title-plate framing;
+  painterly rendering and the oblique map-table camera match the node system.
+- **To reconcile with the theme:** the palette is cooler/earthier than the warm-gold +
+  divine-light identity. As a *board* the muting is a feature (it lets the warm gold
+  Base Rings and rim-lit buildings pop), but consider a slight **warm gold-hour wash +
+  dark-corner vignette** to tie it to the title screen. Keep terrain legible under nodes.
+
+| Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
+| --- | --- | --- | --- | --- | --- |
+| `map-overworld` | World Map (Overworld) | The board the building map-nodes sit on | proposed (candidate committed) | `Illustrations/AssetReport/map-overworld.png` | `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png` |
+
+---
+
 ## Naming & metadata conventions (how visuals map into the DAM)
 
 Every *Asset Report* visual is a governed DAM file. Author its metadata to match the
