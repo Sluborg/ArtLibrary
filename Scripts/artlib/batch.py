@@ -55,62 +55,75 @@ def process_one_asset(p: "payload.Payload", repository: str, log=None) -> dict:
         )
 
     os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-    data = payload.reconstruct_chunks(p.chunks)
-    with open(target, "wb") as f:
-        f.write(data)
 
-    if p.sha256 and not hashing.verify_sha256(target, p.sha256):
-        actual = hashing.sha256_file(target)
-        # Drop the unverified bytes we just wrote so a failed asset never
-        # pollutes the index/validation or gets committed with the batch.
-        try:
-            os.remove(target)
-        except OSError:
-            pass
-        raise AssetError(
-            f"SHA-256 mismatch for {target}: expected {p.sha256} got {actual}"
+    # Track every file this asset writes so we can roll it ALL back if anything
+    # fails — a failed asset must never leave files behind that stage_all() would
+    # commit, nor pollute the index/validation. This covers the SHA mismatch and
+    # any unexpected error after the bytes are written (including an overwrite).
+    created: list[str] = []
+    try:
+        data = payload.reconstruct_chunks(p.chunks)
+        with open(target, "wb") as f:
+            f.write(data)
+        created.append(target)
+
+        if p.sha256 and not hashing.verify_sha256(target, p.sha256):
+            raise AssetError(
+                f"SHA-256 mismatch for {target}: expected {p.sha256} "
+                f"got {hashing.sha256_file(target)}"
+            )
+
+        # Optimize BEFORE embedding so EXIF-stripping optimizers can't drop metadata.
+        if p.optimize:
+            res = optimize.optimize_file(target)
+            if log and res["saved"]:
+                log.info("Optimized %s with %s, saved %d bytes", target, res["tool"], res["saved"])
+
+        meta = metadata.build_authored_metadata(
+            target,
+            user_meta=p.metadata,
+            original_filename=os.path.basename(target),
         )
+        location = metadata.write_asset_metadata(target, meta)
+        if location != "embedded":
+            created.append(location)  # sidecar file
+        if log:
+            log.info("Metadata stored (%s): %s", location, target)
 
-    # Optimize BEFORE embedding so EXIF-stripping optimizers can't drop metadata.
-    if p.optimize:
-        res = optimize.optimize_file(target)
-        if log and res["saved"]:
-            log.info("Optimized %s with %s, saved %d bytes", target, res["tool"], res["saved"])
+        thumbnail_rel = None
+        if p.thumbnail:
+            thumb = paths.thumbnail_path(target)
+            if imaging.make_thumbnail(target, thumb):
+                thumbnail_rel = thumb
+                created.append(thumb)
+                if log:
+                    log.info("Thumbnail: %s", thumb)
 
-    meta = metadata.build_authored_metadata(
-        target,
-        user_meta=p.metadata,
-        original_filename=os.path.basename(target),
-    )
-    location = metadata.write_asset_metadata(target, meta)
-    if log:
-        log.info("Metadata stored (%s): %s", location, target)
+        favicons: list[str] = []
+        if p.favicon:
+            favicons = imaging.make_favicons(target)
+            created.extend(favicons)
+            if favicons and log:
+                log.info("Favicons: %s", ", ".join(favicons))
 
-    thumbnail_rel = None
-    if p.thumbnail:
-        thumb = paths.thumbnail_path(target)
-        if imaging.make_thumbnail(target, thumb):
-            thumbnail_rel = thumb
-            if log:
-                log.info("Thumbnail: %s", thumb)
-
-    favicons: list[str] = []
-    if p.favicon:
-        favicons = imaging.make_favicons(target)
-        if favicons and log:
-            log.info("Favicons: %s", ", ".join(favicons))
-
-    sha = hashing.sha256_file(target)
-    return {
-        "path": target,
-        "sha256": sha,
-        "github_url": urls.github_url(repository, p.branch, target),
-        "raw_url": urls.raw_url(repository, p.branch, target),
-        "thumbnail": thumbnail_rel,
-        "favicons": favicons,
-        # "embedded" when the metadata lives in-band, else a sidecar was written.
-        "metadata": "embedded" if location == "embedded" else "sidecar",
-    }
+        sha = hashing.sha256_file(target)
+        return {
+            "path": target,
+            "sha256": sha,
+            "github_url": urls.github_url(repository, p.branch, target),
+            "raw_url": urls.raw_url(repository, p.branch, target),
+            "thumbnail": thumbnail_rel,
+            "favicons": favicons,
+            # "embedded" when the metadata lives in-band, else a sidecar was written.
+            "metadata": "embedded" if location == "embedded" else "sidecar",
+        }
+    except Exception:
+        for path in created:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        raise
 
 
 def process_upload(
@@ -164,8 +177,10 @@ def process_upload(
             log.error("ERROR %s", error)
 
     # Whether the derived index/report actually changed (vs an idempotent rerun).
-    index_updated = gitutil.is_dirty(constants.INDEX_JSON)
-    report_updated = gitutil.is_dirty(constants.REPORT_MD)
+    # Join root so the dirty check points at the files we actually wrote when
+    # process_upload runs against a non-cwd root.
+    index_updated = gitutil.is_dirty(os.path.join(root, constants.INDEX_JSON))
+    report_updated = gitutil.is_dirty(os.path.join(root, constants.REPORT_MD))
 
     status = "success" if not failed else "failure"
     result = summary.build_summary(

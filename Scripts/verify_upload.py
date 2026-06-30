@@ -80,7 +80,9 @@ def verify(expected: list, root: str = ".") -> dict:
     for rel in expected:
         record(f"{rel}: asset exists", os.path.exists(os.path.join(root, rel)))
         record(f"{rel}: in {constants.INDEX_JSON}", rel in index_paths)
-        record(f"{rel}: in {constants.INDEX_MD}", rel in md_text)
+        # Match the exact backticked token the index renders (e.g. `Generated/x.png`),
+        # not a bare substring, to avoid false positives from incidental mentions.
+        record(f"{rel}: in {constants.INDEX_MD}", f"`{rel}`" in md_text)
 
         record(f"{rel}: in upload result", rel in uploaded_by_path)
         rec = uploaded_by_path.get(rel)
