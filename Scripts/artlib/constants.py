@@ -80,8 +80,11 @@ ASSET_EXTENSIONS = (
     | frozenset({"ico", "avif", "json", "txt", "md", "glb", "gltf", "obj"})
 )
 
-# Formats whose metadata can be embedded in-band (else we fall back to sidecar).
-EMBEDDABLE_EXTENSIONS = RASTER_EXTENSIONS | VECTOR_EXTENSIONS
+# Formats whose metadata can be embedded in-band without recompressing pixels
+# (else we fall back to a sidecar). PNG re-encode is lossless, JPEG uses
+# quality="keep", SVG is text. WebP/TIFF/GIF would require re-encoding, so they
+# use sidecars. Authoritative check lives in imaging.can_embed().
+EMBEDDABLE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "svg"})
 
 # Formats we know how to losslessly optimize.
 OPTIMIZABLE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "webp", "svg"})

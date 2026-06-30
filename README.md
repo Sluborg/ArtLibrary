@@ -165,15 +165,19 @@ The workflow then, entirely via `Scripts/upload_asset.py`:
    can't drop metadata),
 5. **embeds** the authored metadata,
 6. optionally generates a thumbnail and favicons,
-7. commits and pushes the asset.
+7. rebuilds the index and report and **commits them together with the asset**,
+   then pushes.
 
-That push then triggers **Asset Index** and **Validate Assets** automatically.
+The index/report are rebuilt inline (step 7) rather than relying on the push to
+trigger **Asset Index**: GitHub does not start new workflow runs from a push
+made with the default `GITHUB_TOKEN`, so an upload must index itself to stay
+consistent. The push-driven workflows still cover direct human/PAT pushes.
 
 ## Workflows
 
 | Workflow | File | Trigger | Does |
 | --- | --- | --- | --- |
-| **Upload asset** | `upload-binary-file.yml` | manual (payload) | reconstruct → verify → optimize → embed metadata → thumbnail/favicon → commit |
+| **Upload asset** | `upload-binary-file.yml` | manual (payload) | reconstruct → verify → optimize → embed metadata → thumbnail/favicon → rebuild index/report → commit |
 | **Asset Index** | `asset-index.yml` | push to asset dirs | rebuild `asset-index.json` + `ASSET_INDEX.md` + aggregate, commit |
 | **Validate Assets** | `validate-assets.yml` | push + PR | fail on broken/missing metadata, invalid JSON, orphans; warn on duplicates |
 | **Optimize Repository** | `optimize-repository.yml` | manual | losslessly optimize every asset, preserve metadata, commit savings |
@@ -188,14 +192,19 @@ line exists in exactly one place.
 
 ## Automation & self-healing
 
-The repository maintains itself. After any asset push:
+The repository maintains itself, by two complementary paths:
 
-- **Asset Index** regenerates the index/aggregate and commits it,
-- **Validate Assets** checks integrity.
+- **Uploads index themselves.** The Upload workflow rebuilds the index/report
+  in the same run and commits them with the asset (see above) — because a
+  `GITHUB_TOKEN` push cannot trigger another workflow.
+- **Direct pushes are picked up by triggers.** When a human or a PAT pushes to
+  an asset folder, **Asset Index** regenerates the index/aggregate and commits
+  it, and **Validate Assets** checks integrity. Pull requests always run
+  **Validate Assets** regardless of token.
 
-To prevent these derived-file commits from re-triggering the pipeline forever:
+To prevent derived-file commits from re-triggering the pipeline forever:
 
-- automated commits are made by `github-actions` and carry a `[skip ci]` marker,
+- automated commits carry a `[skip ci]` marker,
 - push-triggered workflows skip runs where `github.actor` is the bot.
 
 So a human/agent commits once; the repository converges on its own.

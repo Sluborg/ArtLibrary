@@ -4,11 +4,14 @@ All raster work uses Pillow. Every function degrades gracefully for formats it
 cannot handle (returns None / does nothing / returns False) so the wider
 pipeline never crashes on a non-image or unsupported asset.
 
-Embedding stores the authored metadata JSON *inside* the asset container:
-  * PNG  -> a tEXt/iTXt chunk keyed by ``constants.EMBED_KEY``
-  * JPEG / WebP / TIFF -> EXIF ImageDescription (tag 0x010E)
-  * SVG  -> a <metadata> element carrying the JSON
-None of these touch pixel data, so appearance is preserved.
+Embedding stores the authored metadata JSON *inside* the asset container,
+without ever recompressing the image:
+  * PNG  -> an iTXt chunk keyed by ``constants.EMBED_KEY`` (lossless re-encode)
+  * JPEG -> EXIF ImageDescription (tag 0x010E), saved with quality="keep" so the
+            original quantization tables/coefficients are reused (no new loss)
+  * SVG  -> a <metadata> element carrying the JSON (plain text)
+WebP/TIFF/GIF cannot be updated without re-encoding, so they fall back to a
+sidecar file (see metadata.py) rather than risk degrading the asset.
 """
 
 from __future__ import annotations
@@ -27,13 +30,17 @@ try:  # Pillow is the only third-party dependency.
 except Exception:  # pragma: no cover - import guard
     _PIL_OK = False
 
-# EXIF tag used to carry our JSON in JPEG/WebP/TIFF.
+# EXIF tag used to carry our JSON in JPEG.
 _EXIF_IMAGE_DESCRIPTION = 0x010E
 
-# Formats we can embed metadata into in-band. Anything else falls back to a
-# sidecar file (handled by metadata.py).
-_EMBED_EXIF = frozenset({"jpg", "jpeg", "webp", "tiff", "tif"})
+# Formats we can embed metadata into in-band WITHOUT recompressing pixels.
+# PNG re-encode is lossless; JPEG uses quality="keep" to reuse the original
+# quantization tables (no generational loss); SVG is plain text. WebP, TIFF and
+# GIF are intentionally NOT embeddable: Pillow cannot rewrite their metadata
+# without re-encoding the image, which would alter pixels — so they fall back to
+# a sidecar (handled by metadata.py). Anything else also falls back to sidecar.
 _EMBED_PNG = frozenset({"png"})
+_EMBED_JPEG = frozenset({"jpg", "jpeg"})
 _EMBED_SVG = frozenset({"svg"})
 
 
@@ -43,7 +50,7 @@ def pillow_available() -> bool:
 
 def can_embed(ext: str) -> bool:
     ext = ext.lower()
-    return ext in (_EMBED_PNG | _EMBED_EXIF | _EMBED_SVG)
+    return ext in (_EMBED_PNG | _EMBED_JPEG | _EMBED_SVG)
 
 
 # --- Dimensions ------------------------------------------------------------
@@ -140,8 +147,8 @@ def embed(path: str, meta: dict) -> bool:
     try:
         if ext in _EMBED_PNG:
             return _embed_png(path, payload)
-        if ext in _EMBED_EXIF:
-            return _embed_exif(path, payload, ext)
+        if ext in _EMBED_JPEG:
+            return _embed_jpeg(path, payload)
         if ext in _EMBED_SVG:
             return _embed_svg(path, payload)
     except Exception:
@@ -159,8 +166,8 @@ def read_embedded(path: str) -> dict | None:
             return None
         if ext in _EMBED_PNG:
             return _read_png(path)
-        if ext in _EMBED_EXIF:
-            return _read_exif(path)
+        if ext in _EMBED_JPEG:
+            return _read_jpeg(path)
     except Exception:
         return None
     return None
@@ -189,20 +196,22 @@ def _read_png(path: str) -> dict | None:
     return json.loads(raw) if raw else None
 
 
-def _embed_exif(path: str, payload: str, ext: str) -> bool:
+def _embed_jpeg(path: str, payload: str) -> bool:
     with Image.open(path) as im:
+        if im.format != "JPEG":
+            # Extension lied about the format; don't risk recompressing it.
+            return False
         im.load()
         exif = im.getexif()
         exif[_EXIF_IMAGE_DESCRIPTION] = constants.EMBED_KEY + ":" + payload
-        save_kwargs = {"exif": exif}
-        if ext == "webp":
-            save_kwargs["lossless"] = True if im.mode == "RGBA" else False
-            save_kwargs["quality"] = 100
-        im.save(path, **save_kwargs)
+        # quality="keep" reuses the source's quantization tables, so the DCT
+        # coefficients are preserved and the pixels are not recompressed — we
+        # are only rewriting the EXIF block. Keep subsampling as-is too.
+        im.save(path, "JPEG", quality="keep", subsampling="keep", exif=exif)
     return True
 
 
-def _read_exif(path: str) -> dict | None:
+def _read_jpeg(path: str) -> dict | None:
     with Image.open(path) as im:
         exif = im.getexif()
         raw = exif.get(_EXIF_IMAGE_DESCRIPTION)

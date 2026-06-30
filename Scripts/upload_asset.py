@@ -21,11 +21,14 @@ from artlib import (  # noqa: E402
     gitutil,
     hashing,
     imaging,
+    indexing,
     metadata,
     optimize,
     paths,
     payload,
+    reporting,
     urls,
+    validation,
 )
 
 
@@ -63,25 +66,38 @@ def main() -> int:
     location = metadata.write_asset_metadata(target, meta)
     log.info("Metadata stored: %s", location)
 
-    committed_paths = [target]
-    if location != "embedded":
-        committed_paths.append(location)
-
     if p.thumbnail:
         thumb = paths.thumbnail_path(target)
         if imaging.make_thumbnail(target, thumb):
-            committed_paths.append(thumb)
             log.info("Thumbnail: %s", thumb)
 
     if p.favicon:
         favicons = imaging.make_favicons(target)
-        committed_paths.extend(favicons)
         if favicons:
             log.info("Favicons: %s", ", ".join(favicons))
 
+    # Rebuild the index and report INLINE and commit them with the asset.
+    # A push made with the default GITHUB_TOKEN does not trigger the
+    # push-driven Asset Index / Validate workflows (GitHub suppresses workflow
+    # runs from GITHUB_TOKEN events), so we cannot rely on a follow-up run to
+    # index this asset. Doing it here keeps every upload self-contained: the
+    # asset is always indexed and the library stays consistent in one commit.
+    index = indexing.build_index(".", repository, p.branch)
+    indexing.write_index(".", index)
+    report = reporting.build_report(".")
+    reporting.write_report(".", report)
+
+    # Validate and surface any problems (non-fatal: pre-existing issues on
+    # other assets should not block a new upload; the Validate workflow and the
+    # PR check are the enforcing gate).
+    result = validation.validate_repository(".")
+    for warning in result.warnings:
+        log.warning("WARN  %s", warning)
+    for error in result.errors:
+        log.error("ERROR %s", error)
+
     gitutil.configure_bot()
-    gitutil.stage(committed_paths)
-    # Asset commits are real content: do NOT skip CI — index/validate must run.
+    gitutil.stage_all()
     if gitutil.commit_if_changed(p.commit_message, skip_ci=False):
         gitutil.push(p.branch)
         log.info("Committed and pushed to %s", p.branch)
