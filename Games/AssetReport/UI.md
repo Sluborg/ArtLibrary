@@ -97,3 +97,12 @@ always legible. The UI should make doing paperwork feel *satisfying and importan
 - Cold greys and pure black/white fields (style-guide limit); keep everything
   parchment-warm.
 - Glowing UI chrome — only diegetic magic/faith elements emit light.
+
+## Building-nameplate worklist
+
+Placeholder. Reusable banner/plaque frame; the game renders the dynamic building
+name + level on top of it.
+
+| Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
+| --- | --- | --- | --- | --- | --- |
+| `ui-building-nameplate` | Building Nameplate | One reusable frame/plaque the game overlays each building's NAME + LEVEL onto — one art piece, not one per building; bakes no specific text | needed (placeholder) | `UI/AssetReport/ui-building-nameplate.png` | |

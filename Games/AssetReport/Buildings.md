@@ -17,6 +17,11 @@
 (it then becomes `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/<Target filename>`).
 All 15 building nodes are currently **needed** — none are in the index yet.
 
+> This roster is a **proposed art backlog** derived from the reference sheet —
+> candidate nodes, **not approved game design**. Stefan's sign-off at generation
+> time gates what actually gets made; rows here imply no commitment to include a
+> building in the game.
+
 | Stable ID (slug) | Display name | Category | Top-badge icon | Gameplay role | Art status (needed/done) | Target filename | raw_url (blank until uploaded) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `home-keep` | Home Keep | `PLAYER_BASE` | Blue pennant (star) | Player base / starting capital | needed | `Illustrations/AssetReport/node-home-keep.png` | |
