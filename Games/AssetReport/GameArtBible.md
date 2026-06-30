@@ -203,29 +203,36 @@ props — full per-building spec and the needed/done worklist live in
 
 ---
 
-## Map / overworld backdrop (PROPOSED candidate)
+## Map / overworld backdrop (PROPOSED candidates)
 
-![Asset Report — world map (proposed candidate)](../../Illustrations/AssetReport/map-overworld.png)
+The painterly oblique birds-eye continent that the building
+[map nodes](#node-construction-system-canonical--reproduce-exactly) sit on. Two
+candidates are committed as indexed DAM visuals so they can be compared and iterated
+on — **both PROPOSED, not approved canon, pending Stefan's sign-off.**
 
-> **PROPOSED — not approved canon.** A candidate overworld/world map: the painterly
-> oblique birds-eye continent that the building [map nodes](#node-construction-system-canonical--reproduce-exactly)
-> sit on. Committed as an indexed DAM visual so it can be referenced and iterated on;
-> **pending Stefan's sign-off** before it becomes the canonical board.
->
-> - **Repo path:** `Illustrations/AssetReport/map-overworld.png` · **kind:** `illustration` · **collection:** `AssetReport`
-> - **`raw_url`:** `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png`
+**Candidate B — `map-overworld-v2` (recommended).** Revises Candidate A with the
+theme fit-notes applied: a **warm gold-hour wash**, a **dark-corner vignette**, and a
+warmer golden palette, while keeping terrain legible under the gold node rings. Reads
+much closer to the warm-gold + divine-light title-screen identity.
 
-**Fit notes (for iteration):**
-- **On-brand:** ornate gold border + compass rose echo the title-plate framing;
+![Asset Report — world map candidate B (v2)](../../Illustrations/AssetReport/map-overworld-v2.png)
+
+**Candidate A — `map-overworld` (original).** Strong composition and framing but a
+cooler/earthier palette than the Asset Report identity; kept for comparison.
+
+![Asset Report — world map candidate A](../../Illustrations/AssetReport/map-overworld.png)
+
+**Fit notes:**
+- **On-brand (both):** ornate gold border + compass rose echo the title-plate framing;
   painterly rendering and the oblique map-table camera match the node system.
-- **To reconcile with the theme:** the palette is cooler/earthier than the warm-gold +
-  divine-light identity. As a *board* the muting is a feature (it lets the warm gold
-  Base Rings and rim-lit buildings pop), but consider a slight **warm gold-hour wash +
-  dark-corner vignette** to tie it to the title screen. Keep terrain legible under nodes.
+- **Recommendation:** **Candidate B (v2)** — its warm wash + vignette tie the board to
+  the title screen while the muted terrain still lets the warm gold Base Rings and
+  rim-lit buildings pop. Keep terrain legible under nodes regardless of which wins.
 
 | Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
 | --- | --- | --- | --- | --- | --- |
-| `map-overworld` | World Map (Overworld) | The board the building map-nodes sit on | proposed (candidate committed) | `Illustrations/AssetReport/map-overworld.png` | `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png` |
+| `map-overworld-v2` | World Map (Overworld) v2 — **recommended** | The board the building map-nodes sit on; warm gold-hour wash + vignette per fit-notes | proposed (candidate committed) | `Illustrations/AssetReport/map-overworld-v2.png` | `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld-v2.png` |
+| `map-overworld` | World Map (Overworld) — original | The board the building map-nodes sit on; cooler palette | proposed (candidate committed) | `Illustrations/AssetReport/map-overworld.png` | `https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png` |
 
 ---
 
