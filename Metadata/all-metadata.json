@@ -130,5 +130,74 @@
     "thumbnail": "Generated/testC.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
+  },
+  {
+    "schema_version": 1,
+    "kind": "illustration",
+    "title": "Asset Report — Building Node Design Sheet",
+    "description": "Reference plate defining the Asset Report map-node visual system: the gold Base Ring (consistent for all), the themed isometric building scene that overlaps the ring, the circular Top Badge node-type identifier, and the warm epic rim light — annotated, with the current 15-building roster (Home Keep, Grand Citadel, Settlement, Lumber Camp, Quarry, Farmland, Iron Mine, Gold Mine, Academy, Forge, Barracks, Archer Tower, Wall, Temple, Market).",
+    "prompt": "unknown — original prompt not recorded",
+    "generator": "unknown",
+    "created": "2026-06-30T20:03:26.061164+00:00",
+    "license": "internal-game-art",
+    "tags": [
+      "asset-report",
+      "reference",
+      "moodboard",
+      "building-nodes"
+    ],
+    "original_filename": "node-design-sheet.png",
+    "collection": "AssetReport",
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Illustrations/AssetReport/node-design-sheet.png",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "main",
+    "sha256": "9e00bd431f71d7348ba4f4d16174bf5640e252cb13cd4da4025ee671f79b3ab2",
+    "bytes": 2122106,
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/node-design-sheet.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/node-design-sheet.png",
+    "thumbnail": null,
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
+  },
+  {
+    "schema_version": 1,
+    "kind": "wallpaper",
+    "title": "Asset Report ? Title Screen",
+    "description": "Canonical title/key-art for the game Asset Report and the master theme anchor for all Asset Report visuals: a weary fantasy clerk stamping quest-approval forms at an ink-stained desk (clipboard, abacus, wax seals, 'ITEMIZE EVERYTHING') while heroes, a radiant sky-god and a dragon clash in glory behind. Warm gold + divine light, blue-gem accents, dark vignette, painterly illustrative rendering, ornate engraved title framing.",
+    "prompt": "unknown ? original prompt not recorded",
+    "generator": "unknown",
+    "created": "2026-06-30T20:03:26.003809+00:00",
+    "license": "internal-game-art",
+    "tags": [
+      "asset-report",
+      "key-art",
+      "title-screen",
+      "theme",
+      "splash"
+    ],
+    "original_filename": "title-screen.jpg",
+    "collection": "AssetReport",
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Wallpapers/AssetReport/title-screen.jpg",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "main",
+    "sha256": "bbee04fca5d826801ec8c1c09c906f50cfeab4a7f8241d586b2faaeae601442e",
+    "bytes": 1549492,
+    "dimensions": [
+      1080,
+      2115
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Wallpapers/AssetReport/title-screen.jpg",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Wallpapers/AssetReport/title-screen.jpg",
+    "thumbnail": null,
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
   }
 ]
