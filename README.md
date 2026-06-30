@@ -1,15 +1,21 @@
 # ArtLibrary
 
-**ArtLibrary is the long-term, self-maintaining asset backend for an AI
-assistant ("Lubot").** It is a Git-native Digital Asset Management (DAM) system
-purpose-built for AI-generated media: every asset is governed, hashed,
-described by metadata, indexed, and discoverable. The repository is designed to
-absorb thousands of assets over years without becoming chaotic, and to keep
-itself consistent with near-zero manual maintenance.
+**ArtLibrary is the long-term, self-maintaining visual backend for an AI
+assistant ("Lubot") — its permanent visual memory.** It is a Git-native Digital
+Asset Management (DAM) system purpose-built for AI-generated media: every visual
+is governed, hashed, described by metadata, indexed, and discoverable. The
+repository is designed to absorb thousands of visuals over years without becoming
+chaotic, and to keep itself consistent with near-zero manual maintenance.
 
 The **primary consumer is another AI**. Machine-readability comes first; human
 browsing second. An agent should be able to understand the whole library by
-reading one file (`asset-index.json`) and fetch any asset by its raw URL.
+reading one file (`asset-index.json`) and fetch any visual by its raw URL.
+
+> **New here?** Start with [`Studio.md`](Studio.md) (Lubot's production
+> responsibilities), [`WORKFLOW.md`](WORKFLOW.md) (the request → review → upload
+> loop), and the canonical style guide in
+> [`StyleGuides/`](StyleGuides/Fantasy-Strategy-v1.md). This README documents the
+> backend that stores the results.
 
 ---
 
@@ -175,11 +181,11 @@ consistent. The push-driven workflows still cover direct human/PAT pushes.
 
 ### Batch upload (preferred for multiple assets)
 
-When Lubot generates several assets at once, dispatching the single **Upload
+When Lubot generates several visuals at once, dispatching the single **Upload
 asset** workflow N times is inefficient and fragile: N runs, N commits, N chances
 to half-fail, and no single place to learn what happened. The **Upload assets
 (batch)** workflow (`upload-assets-batch.yml`) takes one `payload` input and
-uploads **every asset in one run and one commit**:
+uploads **every visual in one run and one commit**:
 
 ```jsonc
 {
@@ -212,7 +218,7 @@ Single and batch share one implementation (`artlib.batch.process_upload`) — a
 single upload is simply a batch of one — so there is no duplicated logic and the
 two can never drift.
 
-**Why batch is preferred for multiple generated assets:** one dispatch instead of
+**Why batch is preferred for multiple generated visuals:** one dispatch instead of
 N, one atomic commit instead of N, one index rebuild instead of N, and one
 machine-readable result describing the whole set — so Lubot can dispatch once,
 wait once, and return verified URLs for everything it generated.
@@ -349,17 +355,21 @@ Lubot generates the image and calls the **Upload asset** workflow with a payload
 like the one above. The repository then optimizes, embeds metadata, indexes,
 validates, and reports automatically — Lubot only needs the returned raw URL.
 
-When Lubot generates **several** assets in one go, it uses the **Upload assets
+> Only **approved** visuals should reach this step. The full request → review →
+> upload loop lives in [`WORKFLOW.md`](WORKFLOW.md); this section covers the
+> upload mechanics it calls into.
+
+When Lubot generates **several** visuals in one go, it uses the **Upload assets
 (batch)** workflow instead: one dispatch, one commit, one
 `Reports/latest-upload-result.json` describing the whole set. The end-to-end loop
 is:
 
-1. dispatch **Upload assets (batch)** with all generated assets in one payload,
+1. dispatch **Upload assets (batch)** with all generated visuals in one payload,
 2. wait for the run to finish,
 3. read `Reports/latest-upload-result.json` (or the run's stdout/step summary) for
    the per-asset `raw_url`s and overall `status`,
 4. optionally run `Scripts/verify_upload.py --expected <path> ...` to
-   machine-verify the assets, index and result all agree,
+   machine-verify the visuals, index and result all agree,
 5. return the verified raw URLs to the user.
 
 Because all logic is in `artlib`, the same operations are available
