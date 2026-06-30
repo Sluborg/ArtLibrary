@@ -34,15 +34,19 @@ result = artlib.validation.validate_repository(".")
 | `indexing.py` | Build `asset-index.json`, `ASSET_INDEX.md`, `Metadata/all-metadata.json`. |
 | `reporting.py` | Build and render `Reports/latest-report.md`. |
 | `validation.py` | Structured `Result(errors, warnings)` for the push/PR gate. |
-| `gitutil.py` | Bot identity, "nothing to commit" guard, `[skip ci]` loop guard, push. |
-| `payload.py` | Upload payload parse + base64 chunk reconstruction (original workflow semantics). |
+| `gitutil.py` | Bot identity, "nothing to commit" guard, `[skip ci]` loop guard, push, HEAD SHA, dirty-path check. |
+| `payload.py` | Single + **batch** payload parse and base64 chunk reconstruction. |
+| `batch.py` | **Upload orchestration shared by single + batch.** `process_one_asset` (write→verify→optimize→embed→thumbnail/favicon) and `process_upload` (loop assets, rebuild index/report, validate, commit once, emit result). A single upload is a batch of one. |
+| `summary.py` | The upload result summary: builds the canonical dict, writes `Reports/latest-upload-result.json`, and writes the GitHub `$GITHUB_STEP_SUMMARY`. |
 | `cli.py` | Shared entrypoint helpers (repo/branch discovery, logging). |
 
 ## CLI entrypoints
 
 | Script | Workflow | Key flags |
 | --- | --- | --- |
-| `upload_asset.py` | Upload asset | reads `ARTLIB_PAYLOAD` env |
+| `upload_asset.py` | Upload asset | reads `ARTLIB_PAYLOAD` env (single-asset payload) |
+| `upload_assets_batch.py` | Upload assets (batch) | reads `ARTLIB_PAYLOAD` env (batch payload) |
+| `verify_upload.py` | — (verification helper) | `--expected PATH` (repeatable), `--root` |
 | `build_index.py` | Asset Index | `--commit`, `--message`, `--root` |
 | `validate_assets.py` | Validate Assets | `--root` (exit 1 on errors) |
 | `optimize_repo.py` | Optimize Repository | `--commit`, `--root` |
@@ -52,6 +56,24 @@ result = artlib.validation.validate_repository(".")
 
 `--commit` stages, commits (with `[skip ci]`) and pushes; without it the script
 only writes files, which is handy for local inspection.
+
+Both upload entrypoints share `artlib.batch.process_upload`, so single and batch
+behave identically. Each writes a machine-readable result to
+`Reports/latest-upload-result.json` and a `$GITHUB_STEP_SUMMARY`, prints the
+result JSON to stdout, and exits non-zero if any asset failed. `verify_upload.py`
+confirms a completed upload from outside the workflow:
+
+```bash
+python Scripts/verify_upload.py \
+  --expected Generated/testA.png \
+  --expected Generated/testB.png \
+  --expected Generated/testC.png
+```
+
+It checks each asset exists, that the index (`asset-index.json` + `ASSET_INDEX.md`)
+and `Reports/latest-upload-result.json` list it, and that any thumbnail/favicons
+the upload reported were produced exist on disk. It prints a JSON report and
+exits non-zero on any failure.
 
 ## Environment
 

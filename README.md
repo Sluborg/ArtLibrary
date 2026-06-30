@@ -173,11 +173,108 @@ trigger **Asset Index**: GitHub does not start new workflow runs from a push
 made with the default `GITHUB_TOKEN`, so an upload must index itself to stay
 consistent. The push-driven workflows still cover direct human/PAT pushes.
 
+### Batch upload (preferred for multiple assets)
+
+When Lubot generates several assets at once, dispatching the single **Upload
+asset** workflow N times is inefficient and fragile: N runs, N commits, N chances
+to half-fail, and no single place to learn what happened. The **Upload assets
+(batch)** workflow (`upload-assets-batch.yml`) takes one `payload` input and
+uploads **every asset in one run and one commit**:
+
+```jsonc
+{
+  "branch": "main",
+  "commit_message": "Upload asset batch",
+  "assets": [
+    {
+      "path": "Generated/testA.png",
+      "sha256": "<optional integrity hash>",
+      "chunks": ["<base64 part 1>", "<base64 part 2>"],
+      "metadata": { "title": "testA", "prompt": "...", "generator": "Lubot",
+                    "kind": "test-image", "tags": ["test"], "license": "internal-test" },
+      "options": { "optimize": true, "thumbnail": true, "favicon": true,
+                   "allow_overwrite": true }
+    }
+    // ... more assets
+  ]
+}
+```
+
+`branch` and `commit_message` are shared by the batch; everything else is
+per-asset and uses the **exact same** schema as a single upload. Each asset is
+processed independently (reconstruct → verify → optimize → embed metadata →
+thumbnail/favicon); **a failing asset is recorded and skipped, never fatal to the
+others**. After all assets, the index/report are rebuilt once, validation runs,
+and everything is committed together. If any asset failed, the workflow still
+commits the ones that succeeded but exits non-zero.
+
+Single and batch share one implementation (`artlib.batch.process_upload`) — a
+single upload is simply a batch of one — so there is no duplicated logic and the
+two can never drift.
+
+**Why batch is preferred for multiple generated assets:** one dispatch instead of
+N, one atomic commit instead of N, one index rebuild instead of N, and one
+machine-readable result describing the whole set — so Lubot can dispatch once,
+wait once, and return verified URLs for everything it generated.
+
+### Upload result (machine-readable completion)
+
+Every upload (single or batch) writes the same result in three places: the
+durable, committed `Reports/latest-upload-result.json`, the run's
+`$GITHUB_STEP_SUMMARY` (the Actions UI), and stdout. The shape:
+
+```jsonc
+{
+  "status": "success",                 // "failure" if any asset failed
+  "branch": "main",
+  "commit_sha": "...",                 // the upload commit (see note below)
+  "uploaded": [
+    {
+      "path": "Generated/testA.png",
+      "sha256": "...",
+      "github_url": "...",
+      "raw_url": "...",                 // the CDN URL Lubot returns to the user
+      "thumbnail": "Generated/testA.thumb.png",  // null if not generated
+      "favicons": ["Generated/testA-16.png", "Generated/testA-32.png", "Generated/testA-48.png"],
+      "metadata": "embedded"           // "embedded" or "sidecar"
+    }
+  ],
+  "failed": [],                        // [{path, error}] for any that failed
+  "index_updated": true,
+  "report_updated": true,
+  "validation": "success"              // "failure" if the repo failed validation
+}
+```
+
+> **Note on `commit_sha`:** the committed copy of
+> `Reports/latest-upload-result.json` necessarily has an empty `commit_sha` (a
+> commit cannot contain its own hash). The authoritative SHA is emitted to stdout
+> and the step summary after the commit is made.
+
+### Verifying a completed upload
+
+`Scripts/verify_upload.py` is the machine-verifiable completion check. After an
+upload finishes (and the branch is pulled), it confirms the expected assets
+really landed:
+
+```bash
+python Scripts/verify_upload.py \
+  --expected Generated/testA.png \
+  --expected Generated/testB.png \
+  --expected Generated/testC.png
+```
+
+For each expected asset it checks: the file exists, `asset-index.json` and
+`ASSET_INDEX.md` include it, `Reports/latest-upload-result.json` lists it, and any
+thumbnail/favicons the upload reported were produced exist. It prints a JSON
+report and exits non-zero if anything is missing.
+
 ## Workflows
 
 | Workflow | File | Trigger | Does |
 | --- | --- | --- | --- |
-| **Upload asset** | `upload-binary-file.yml` | manual (payload) | reconstruct → verify → optimize → embed metadata → thumbnail/favicon → rebuild index/report → commit |
+| **Upload asset** | `upload-binary-file.yml` | manual (payload) | reconstruct → verify → optimize → embed metadata → thumbnail/favicon → rebuild index/report → commit → result summary |
+| **Upload assets (batch)** | `upload-assets-batch.yml` | manual (payload) | same as Upload asset, for **many assets in one run and one commit**; continues past a failed asset and reports each |
 | **Asset Index** | `asset-index.yml` | push to asset dirs | rebuild `asset-index.json` + `ASSET_INDEX.md` + aggregate, commit |
 | **Validate Assets** | `validate-assets.yml` | push + PR | fail on broken/missing metadata, invalid JSON, orphans; warn on duplicates |
 | **Optimize Repository** | `optimize-repository.yml` | manual | losslessly optimize every asset, preserve metadata, commit savings |
@@ -194,9 +291,9 @@ line exists in exactly one place.
 
 The repository maintains itself, by two complementary paths:
 
-- **Uploads index themselves.** The Upload workflow rebuilds the index/report
-  in the same run and commits them with the asset (see above) — because a
-  `GITHUB_TOKEN` push cannot trigger another workflow.
+- **Uploads index themselves.** The Upload workflows (single and batch) rebuild
+  the index/report in the same run and commit them with the asset(s) (see above)
+  — because a `GITHUB_TOKEN` push cannot trigger another workflow.
 - **Direct pushes are picked up by triggers.** When a human or a PAT pushes to
   an asset folder, **Asset Index** regenerates the index/aggregate and commits
   it, and **Validate Assets** checks integrity. Pull requests always run
@@ -251,6 +348,19 @@ Today the intended interaction is:
 Lubot generates the image and calls the **Upload asset** workflow with a payload
 like the one above. The repository then optimizes, embeds metadata, indexes,
 validates, and reports automatically — Lubot only needs the returned raw URL.
+
+When Lubot generates **several** assets in one go, it uses the **Upload assets
+(batch)** workflow instead: one dispatch, one commit, one
+`Reports/latest-upload-result.json` describing the whole set. The end-to-end loop
+is:
+
+1. dispatch **Upload assets (batch)** with all generated assets in one payload,
+2. wait for the run to finish,
+3. read `Reports/latest-upload-result.json` (or the run's stdout/step summary) for
+   the per-asset `raw_url`s and overall `status`,
+4. optionally run `Scripts/verify_upload.py --expected <path> ...` to
+   machine-verify the assets, index and result all agree,
+5. return the verified raw URLs to the user.
 
 Because all logic is in `artlib`, the same operations are available
 in-process. A future MCP server or REST API would `import artlib` and call

@@ -57,6 +57,11 @@ METADATA_AGGREGATE = "Metadata/all-metadata.json"
 REPORTS_DIR = "Reports"
 REPORT_MD = "Reports/latest-report.md"
 
+# Machine-readable result of the most recent upload workflow run (single or
+# batch). Always overwritten so it represents the latest upload. Lives under the
+# ignored Reports/ dir so it is never treated as an asset.
+UPLOAD_RESULT_JSON = "Reports/latest-upload-result.json"
+
 # Top-level derived files that must never be treated as assets.
 DERIVED_FILES = frozenset({INDEX_JSON, INDEX_MD})
 

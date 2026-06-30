@@ -48,3 +48,15 @@ def commit_if_changed(message: str, skip_ci: bool = True) -> bool:
 
 def push(branch: str) -> None:
     _git("push", "origin", branch)
+
+
+def head_sha() -> str:
+    """Return the full SHA of the current HEAD commit (empty on failure)."""
+    out = _git("rev-parse", "HEAD", check=False)
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+def is_dirty(path: str) -> bool:
+    """True if ``path`` has uncommitted changes relative to HEAD (working tree)."""
+    out = _git("status", "--porcelain", "--", path, check=False)
+    return bool(out.stdout.strip())

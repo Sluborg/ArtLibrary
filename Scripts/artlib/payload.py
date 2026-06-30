@@ -15,6 +15,11 @@ from .paths import validate_branch, validate_repo_path
 
 REQUIRED_KEYS = ("branch", "path", "commit_message", "chunks")
 
+# A batch payload shares branch + commit_message across many assets; each asset
+# carries the per-file fields (path, chunks, sha256, metadata, options).
+BATCH_REQUIRED_KEYS = ("branch", "commit_message", "assets")
+ASSET_REQUIRED_KEYS = ("path", "chunks")
+
 
 @dataclass
 class Payload:
@@ -81,6 +86,79 @@ def parse_payload(raw: str) -> Payload:
         metadata=meta,
         options=options,
     )
+
+
+@dataclass
+class BatchPayload:
+    """A batch upload: one branch + commit_message, many per-asset payloads.
+
+    Each entry in ``assets`` is a fully-formed :class:`Payload` carrying the
+    shared ``branch`` / ``commit_message`` so the single-asset processing code
+    can consume batch and single uploads through the exact same type.
+    """
+
+    branch: str
+    commit_message: str
+    assets: list  # list[Payload]
+
+
+def parse_batch_payload(raw: str) -> BatchPayload:
+    """Parse and validate a JSON batch upload payload, raising ValueError on problems.
+
+    Reuses the single-asset validation (path safety, chunk shape, metadata /
+    options types) for every entry so batch and single uploads enforce an
+    identical contract.
+    """
+    if not raw:
+        raise ValueError("Missing workflow payload")
+
+    data = json.loads(raw)
+    for key in BATCH_REQUIRED_KEYS:
+        if key not in data:
+            raise ValueError(f"Missing required key: {key}")
+
+    branch = validate_branch(data["branch"])
+    commit_message = data["commit_message"]
+
+    assets = data["assets"]
+    if not isinstance(assets, list) or not assets:
+        raise ValueError("assets must be a non-empty array")
+
+    payloads: list = []
+    for i, asset in enumerate(assets):
+        if not isinstance(asset, dict):
+            raise ValueError(f"assets[{i}] must be an object")
+        for key in ASSET_REQUIRED_KEYS:
+            if key not in asset:
+                raise ValueError(f"assets[{i}] missing required key: {key}")
+
+        chunks = asset["chunks"]
+        if not isinstance(chunks, list) or not chunks:
+            raise ValueError(f"assets[{i}].chunks must be a non-empty array")
+
+        path = validate_repo_path(asset["path"])
+
+        meta = asset.get("metadata", {}) or {}
+        if not isinstance(meta, dict):
+            raise ValueError(f"assets[{i}].metadata must be an object when provided")
+
+        options = asset.get("options", {}) or {}
+        if not isinstance(options, dict):
+            raise ValueError(f"assets[{i}].options must be an object when provided")
+
+        payloads.append(
+            Payload(
+                branch=branch,
+                path=path,
+                commit_message=commit_message,
+                chunks=chunks,
+                sha256=asset.get("sha256", "") or "",
+                metadata=meta,
+                options=options,
+            )
+        )
+
+    return BatchPayload(branch=branch, commit_message=commit_message, assets=payloads)
 
 
 def reconstruct_chunks(chunks: list) -> bytes:

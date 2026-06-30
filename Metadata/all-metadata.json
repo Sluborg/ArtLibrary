@@ -19,16 +19,115 @@
     "embeddings": null,
     "path": "Generated/smoke-test-8x8.png",
     "repository": "Sluborg/ArtLibrary",
-    "branch": "main",
+    "branch": "claude/artlib-batch-upload-sj39jd",
     "sha256": "33c81a7a689d437cb91221d83f90ab37ca074c61b0e7d000c47eef9584992842",
     "bytes": 619,
     "dimensions": [
       8,
       8
     ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png",
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlib-batch-upload-sj39jd/Generated/smoke-test-8x8.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlib-batch-upload-sj39jd/Generated/smoke-test-8x8.png",
     "thumbnail": "Generated/smoke-test-8x8.thumb.png",
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
+  },
+  {
+    "schema_version": 1,
+    "kind": "test-image",
+    "title": "testA",
+    "description": "Batch upload test image A",
+    "prompt": "Programmatically generated test image A",
+    "generator": "Lubot",
+    "created": "2026-06-30T00:50:53.546714+00:00",
+    "license": "internal-test",
+    "tags": [
+      "test",
+      "batch",
+      "A"
+    ],
+    "original_filename": "testA.png",
+    "collection": null,
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Generated/testA.png",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "claude/artlib-batch-upload-sj39jd",
+    "sha256": "e92810152cdd2702890fee0b518609c6f8131347cda19ae0d0efc8fc7542d8a6",
+    "bytes": 460,
+    "dimensions": [
+      8,
+      8
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlib-batch-upload-sj39jd/Generated/testA.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlib-batch-upload-sj39jd/Generated/testA.png",
+    "thumbnail": "Generated/testA.thumb.png",
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
+  },
+  {
+    "schema_version": 1,
+    "kind": "test-image",
+    "title": "testB",
+    "description": "Batch upload test image B",
+    "prompt": "Programmatically generated test image B",
+    "generator": "Lubot",
+    "created": "2026-06-30T00:50:53.548997+00:00",
+    "license": "internal-test",
+    "tags": [
+      "test",
+      "batch",
+      "B"
+    ],
+    "original_filename": "testB.png",
+    "collection": null,
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Generated/testB.png",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "claude/artlib-batch-upload-sj39jd",
+    "sha256": "70fc4796180c106b8edf8b81b345744617ae83eccf78eade07a380262c132cd3",
+    "bytes": 460,
+    "dimensions": [
+      8,
+      8
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlib-batch-upload-sj39jd/Generated/testB.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlib-batch-upload-sj39jd/Generated/testB.png",
+    "thumbnail": "Generated/testB.thumb.png",
+    "has_embedded_metadata": true,
+    "source": "github-actions-artlibrary"
+  },
+  {
+    "schema_version": 1,
+    "kind": "test-image",
+    "title": "testC",
+    "description": "Batch upload test image C",
+    "prompt": "Programmatically generated test image C",
+    "generator": "Lubot",
+    "created": "2026-06-30T00:50:53.551173+00:00",
+    "license": "internal-test",
+    "tags": [
+      "test",
+      "batch",
+      "C"
+    ],
+    "original_filename": "testC.png",
+    "collection": null,
+    "derived_from": null,
+    "embeddings": null,
+    "path": "Generated/testC.png",
+    "repository": "Sluborg/ArtLibrary",
+    "branch": "claude/artlib-batch-upload-sj39jd",
+    "sha256": "429d49c57ae1dc334d3285e68cd29a01ed3e728429537b16014bd52aba2594e0",
+    "bytes": 460,
+    "dimensions": [
+      8,
+      8
+    ],
+    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlib-batch-upload-sj39jd/Generated/testC.png",
+    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlib-batch-upload-sj39jd/Generated/testC.png",
+    "thumbnail": "Generated/testC.thumb.png",
     "has_embedded_metadata": true,
     "source": "github-actions-artlibrary"
   }
