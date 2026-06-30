@@ -1,0 +1,38 @@
+name: Repair Repository
+
+# Manually rebuilds ALL derived state from the asset bytes alone — metadata,
+# thumbnails, index, aggregate and report — without losing any assets. The
+# recovery path when the index is corrupted or history is partial.
+
+on:
+  workflow_dispatch:
+    inputs:
+      thumbnails:
+        description: "Regenerate missing thumbnails"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - uses: ./.github/actions/setup-image-tools
+
+      - name: Repair repository
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: |
+          python Scripts/repair_repo.py --commit \
+            ${{ inputs.thumbnails && '--thumbnails' || '' }}

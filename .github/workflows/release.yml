@@ -1,0 +1,76 @@
+name: Release
+
+# Packages the library into a convenience bundle: a ZIP of all assets plus the
+# index and aggregated metadata, attached as Release Assets. The repository's
+# raw URLs remain the primary delivery channel; this is for bulk / offline grab
+# (e.g. a game pulling a whole asset pack at once).
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0). Defaults to a timestamped snapshot."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - name: Refresh index for the bundle
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: python Scripts/build_index.py
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=snapshot-$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zip -r "dist/artlibrary-${{ steps.tag.outputs.tag }}.zip" \
+            Assets Icons Illustrations Wallpapers Textures Generated \
+            asset-index.json Metadata/all-metadata.json 2>/dev/null || true
+          cp asset-index.json "dist/asset-index.json"
+          cp Metadata/all-metadata.json "dist/all-metadata.json"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.tag }}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --title "ArtLibrary $tag" \
+              --notes "Automated asset bundle for $tag." \
+              dist/*
+          else
+            gh release upload "$tag" dist/* --clobber
+          fi

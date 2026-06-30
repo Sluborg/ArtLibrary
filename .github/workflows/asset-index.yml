@@ -1,0 +1,45 @@
+name: Asset Index
+
+# Rebuilds asset-index.json, ASSET_INDEX.md and Metadata/all-metadata.json
+# whenever assets change, and commits the result. This is what keeps the
+# machine-readable index (the AI's view of the library) always current.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "Assets/**"
+      - "Icons/**"
+      - "Illustrations/**"
+      - "Wallpapers/**"
+      - "Textures/**"
+      - "Generated/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: asset-index-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    # Skip the bot's own derived-file commits to avoid an infinite loop.
+    if: ${{ github.actor != 'github-actions' && github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - name: Rebuild and commit index
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: python Scripts/build_index.py --commit

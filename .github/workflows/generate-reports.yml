@@ -1,0 +1,31 @@
+name: Generate Reports
+
+# Produces Reports/latest-report.md (asset counts, storage, missing metadata,
+# duplicates, newest/largest assets, extension stats). Runs on demand and on a
+# weekly schedule so the repo keeps reporting on its own health unprompted.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions' && github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r Scripts/requirements.txt
+
+      - name: Generate and commit report
+        env:
+          ARTLIB_BRANCH: ${{ github.ref_name }}
+        run: python Scripts/generate_report.py --commit
