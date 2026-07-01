@@ -140,8 +140,16 @@ def slug_of(row: str) -> str:
 def parse_rows(raw: str) -> list[str]:
     """Parse the ``rows`` input into a list of markdown row strings.
 
-    Accepts either a JSON array of strings (``["| a | b |", ...]``) or one row
-    per line. Blank lines are ignored.
+    Accepts, in order of preference:
+
+      * a **JSON array** of strings (``["| a | b |", ...]``) — the natural shape
+        for a ``repository_dispatch`` payload, and what ``toJSON(...)`` produces
+        when the workflow serialises a client_payload array;
+      * a **JSON-encoded string** (``"| a | b |"``) — what ``toJSON(...)``
+        produces for a single string payload; unwrapped, then split by line;
+      * plain text with **one row per line**.
+
+    Blank lines are ignored.
     """
     if not raw:
         return []
@@ -155,6 +163,15 @@ def parse_rows(raw: str) -> list[str]:
             data = None
         if isinstance(data, list):
             return [str(x).strip() for x in data if str(x).strip()]
+    if stripped[0] == '"':
+        # A JSON-encoded string, e.g. toJSON() applied to a single-string
+        # payload. Unwrap it and fall through to line splitting.
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, str):
+            stripped = data
     return [ln.strip() for ln in stripped.splitlines() if ln.strip()]
 
 

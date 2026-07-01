@@ -75,8 +75,13 @@ jobs:
       - name: Register worklist row
         env:
           # Both trigger types map onto the same ARTLIB_* env the script reads.
+          # `rows` may be a JSON array in a repository_dispatch client_payload;
+          # GitHub does not stringify arrays/objects in a direct expression, so
+          # serialise it with toJSON() (workflow_dispatch inputs.rows is already
+          # a string). register_worklist's parse_rows() accepts a JSON array, a
+          # JSON-encoded string, or line-delimited text.
           ARTLIB_WORKLIST: ${{ inputs.worklist || github.event.client_payload.worklist }}
-          ARTLIB_ROWS: ${{ inputs.rows || github.event.client_payload.rows }}
+          ARTLIB_ROWS: ${{ inputs.rows || toJSON(github.event.client_payload.rows) }}
           ARTLIB_TABLE: ${{ inputs.table || github.event.client_payload.table }}
           ARTLIB_NOTE: ${{ inputs.note || github.event.client_payload.note }}
           ARTLIB_MESSAGE: ${{ inputs.message || github.event.client_payload.message }}
