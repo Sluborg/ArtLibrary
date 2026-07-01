@@ -107,6 +107,10 @@ name + level on top of it.
 | Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
 | --- | --- | --- | --- | --- | --- |
 | `ui-building-nameplate` | Building Nameplate | One reusable frame/plaque the game overlays each building's NAME + LEVEL onto — one art piece, not one per building; bakes no specific text | needed (placeholder) | `Assets/AssetReport/ui-building-nameplate.png` | |
+| `ui-button-primary-stamp` | Primary Stamp Button | Reusable textless primary CTA button template; a pressable red wax seal / approval-stamp action surface; game overlays live label text | needed | `Assets/AssetReport/ui-button-primary-stamp.png` | |
+| `ui-button-secondary-brass` | Secondary Brass Button | Reusable textless secondary action button template; depressed engraved brass plate with restrained gem accents; game overlays live label text | needed | `Assets/AssetReport/ui-button-secondary-brass.png` | |
+| `ui-button-parchment-tab` | Parchment Tab Button | Reusable textless softer menu/list button template; deckled parchment tab with brass clips and wax accent; game overlays live label text | needed | `Assets/AssetReport/ui-button-parchment-tab.png` | |
+| `ui-button-disabled-ledger` | Disabled Ledger Button | Reusable textless inactive/locked button template; muted ledger-line plaque with subdued brass rim; game overlays live label text | needed | `Assets/AssetReport/ui-button-disabled-ledger.png` | |
 
 Tags: `ui`, `nameplate`, `frame`. Stored under `Assets/AssetReport/` (an indexed
 `ASSET_DIR`) so the placeholder gets a real `raw_url` when produced.

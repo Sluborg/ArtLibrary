@@ -1,0 +1,28 @@
+{
+  "status": "success",
+  "worklist": "Games/AssetReport/UI.md",
+  "table": "ui",
+  "branch": "main",
+  "commit_sha": "",
+  "rows_added": [
+    {
+      "slug": "ui-button-primary-stamp",
+      "row": "| `ui-button-primary-stamp` | Primary Stamp Button | Reusable textless primary CTA button template; a pressable red wax seal / approval-stamp action surface; game overlays live label text | needed | `Assets/AssetReport/ui-button-primary-stamp.png` | |"
+    },
+    {
+      "slug": "ui-button-secondary-brass",
+      "row": "| `ui-button-secondary-brass` | Secondary Brass Button | Reusable textless secondary action button template; depressed engraved brass plate with restrained gem accents; game overlays live label text | needed | `Assets/AssetReport/ui-button-secondary-brass.png` | |"
+    },
+    {
+      "slug": "ui-button-parchment-tab",
+      "row": "| `ui-button-parchment-tab` | Parchment Tab Button | Reusable textless softer menu/list button template; deckled parchment tab with brass clips and wax accent; game overlays live label text | needed | `Assets/AssetReport/ui-button-parchment-tab.png` | |"
+    },
+    {
+      "slug": "ui-button-disabled-ledger",
+      "row": "| `ui-button-disabled-ledger` | Disabled Ledger Button | Reusable textless inactive/locked button template; muted ledger-line plaque with subdued brass rim; game overlays live label text | needed | `Assets/AssetReport/ui-button-disabled-ledger.png` | |"
+    }
+  ],
+  "rows_skipped": [],
+  "note_added": false,
+  "error": ""
+}
