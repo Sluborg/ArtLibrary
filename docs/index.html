@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A live viewer for the ArtLibrary — every AssetReport visual with its metadata, plus a needed-vs-done checklist.">
+<title>ArtLibrary — Asset Report Viewer</title>
+<style>
+  /* ============================ Design tokens ============================ */
+  :root {
+    /* Light (default) */
+    --bg:            #FFF9F3;
+    --surface:       #FFFFFF;
+    --surface-2:     #FBF3EB;
+    --border:        #F0E4D8;
+    --ink:           #2B2320;
+    --muted:         #6E5F53;   /* AA on warm bg */
+    --primary:       #C74E17;   /* darkened coral: white text clears AA */
+    --primary-ink:   #FFFFFF;
+    --focus:         #2563EB;
+    --done:          #2F7D4F;
+    --done-bg:       #E4F3EA;
+    --missing:       #C0392B;
+    --missing-bg:    #FBE7E4;
+    --toast-bg:      #2B2320;
+    --toast-ink:     #FFF9F3;
+
+    --k-illustration:  #6A44E0;  --k-illustration-bg: #EDE9FF;
+    --k-wallpaper:     #0B7C7C;  --k-wallpaper-bg:    #DBF5F4;
+    --k-test-image:    #9A6400;  --k-test-image-bg:   #FFF0CC;
+    --k-default:       #6B6558;  --k-default-bg:      #F0EBE1;
+
+    --shadow-card:  0 2px 8px rgba(43,35,32,.06);
+    --shadow-lift:  0 8px 20px rgba(43,35,32,.12);
+    --shadow-modal: 0 16px 48px rgba(43,35,32,.28);
+
+    --radius-card: 20px;
+    --radius-ctrl: 12px;
+    --radius-pill: 999px;
+
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --spring: cubic-bezier(.34,1.56,.64,1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:            #1A1614;
+      --surface:       #241E1B;
+      --surface-2:     #2C2521;
+      --border:        #3A302B;
+      --ink:           #F5EDE6;
+      --muted:         #B29C8C;
+      --primary:       #FF7A47;
+      --primary-ink:   #1A1614;
+      --focus:         #6AA3FF;
+      --done:          #7FB98E;
+      --done-bg:       #22322A;
+      --missing:       #E5786B;
+      --missing-bg:    #3A2622;
+      --toast-bg:      #F5EDE6;
+      --toast-ink:     #1A1614;
+
+      --k-illustration:  #B9A6FF;  --k-illustration-bg: rgba(124,92,255,.20);
+      --k-wallpaper:     #6FD6D6;  --k-wallpaper-bg:    rgba(15,163,163,.20);
+      --k-test-image:    #E7B84D;  --k-test-image-bg:   rgba(217,138,0,.20);
+      --k-default:       #B29C8C;  --k-default-bg:      rgba(178,156,140,.16);
+
+      --shadow-card:  0 2px 8px rgba(0,0,0,.30);
+      --shadow-lift:  0 8px 20px rgba(0,0,0,.45);
+      --shadow-modal: 0 16px 48px rgba(0,0,0,.60);
+    }
+  }
+
+  /* ============================ Base ============================ */
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--primary); }
+  img { display: block; }
+  button { font-family: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 768px) { .wrap { padding: 0 32px; } }
+
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ============================ Header ============================ */
+  header.site {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  header.site .wrap { padding-top: 14px; padding-bottom: 12px; }
+  .wordmark {
+    font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em;
+    margin: 0; display: flex; align-items: center; gap: 9px;
+  }
+  .wordmark .dot {
+    width: 14px; height: 14px; border-radius: 5px; background: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  }
+  .countline {
+    margin: 4px 0 0; font-size: 13px; font-weight: 500; line-height: 1.4;
+    color: var(--muted);
+  }
+  .countline .num { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .countline .num.miss.pos { color: var(--missing); }
+  .countline .sep { opacity: .5; margin: 0 5px; }
+
+  /* ============================ Controls ============================ */
+  .controls {
+    position: sticky; top: var(--header-h, 82px); z-index: 20;
+    background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .controls .wrap { padding-top: 10px; padding-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
+
+  .search {
+    position: relative; display: flex; align-items: center;
+  }
+  .search svg.lead { position: absolute; left: 14px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+  .search input {
+    width: 100%; height: 48px; padding: 0 44px 0 42px;
+    border: 1px solid var(--border); border-radius: var(--radius-pill);
+    background: var(--surface); color: var(--ink); font-size: 15px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .search input::placeholder { color: var(--muted); }
+  .search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .search .clear {
+    position: absolute; right: 4px; width: 44px; height: 44px; display: none;
+    align-items: center; justify-content: center; border: 0; background: transparent;
+    color: var(--muted); cursor: pointer; border-radius: 50%;
+  }
+  .search .clear:hover { color: var(--ink); }
+  .search.has-value .clear { display: flex; }
+
+  .chiprow {
+    display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px;
+    scrollbar-width: none; -ms-overflow-style: none;
+    scroll-snap-type: x proximity;
+  }
+  .chiprow::-webkit-scrollbar { display: none; }
+  .chiprow .label {
+    flex: 0 0 auto; align-self: center; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    padding-right: 2px;
+  }
+  .chip {
+    flex: 0 0 auto; min-height: 44px; padding: 8px 15px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: transform .12s var(--spring), background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .chip:active { transform: scale(.94); }
+  .chip[aria-pressed="true"], .chip.active {
+    background: var(--primary); color: var(--primary-ink); border-color: var(--primary);
+  }
+  .chip.clear-filters { border-style: dashed; color: var(--muted); }
+  .chip .count { font-weight: 600; opacity: .65; font-variant-numeric: tabular-nums; }
+
+  /* ============================ Sections ============================ */
+  main .wrap { padding-top: 20px; padding-bottom: 48px; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin: 4px 0 12px;
+  }
+  .section-head h2 { font-size: 20px; font-weight: 700; line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+  .section-head .summary { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ============================ Needed vs Done ============================ */
+  .needed { margin-bottom: 28px; }
+  .progress {
+    height: 10px; border-radius: var(--radius-pill); background: var(--border);
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .progress > span {
+    display: block; height: 100%; width: 0; border-radius: inherit;
+    background: linear-gradient(90deg, var(--done), color-mix(in srgb, var(--done) 70%, var(--primary)));
+    transition: width .9s var(--spring);
+  }
+  ul.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .need-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: var(--radius-ctrl);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .need-item.is-missing { border-style: dashed; }
+  .need-item .meta { min-width: 0; flex: 1; }
+  .need-item .slug { font-family: var(--mono); font-size: 14px; font-weight: 600; word-break: break-word; }
+  .need-item .desc { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .need-item .desc .k { text-transform: uppercase; letter-spacing: .04em; font-weight: 700; font-size: 10.5px; }
+  .status-pill {
+    flex: 0 0 auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    padding: 5px 10px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .status-pill.done    { color: var(--done);    background: var(--done-bg); }
+  .status-pill.missing { color: var(--missing); background: var(--missing-bg); }
+
+  /* ============================ Gallery ============================ */
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    display: flex; flex-direction: column; text-align: left; padding: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+    cursor: pointer; overflow: hidden; color: inherit;
+    transition: transform .18s var(--spring), box-shadow .18s ease;
+    animation: cardIn .4s ease both;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .thumb {
+    position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--surface-2);
+  }
+  .thumb img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform .3s var(--spring); opacity: 0;
+  }
+  .thumb img.loaded { opacity: 1; }
+  .thumb .skeleton {
+    position: absolute; inset: 0;
+    background: linear-gradient(100deg, var(--surface-2) 30%, color-mix(in srgb, var(--surface-2) 60%, var(--surface)) 50%, var(--surface-2) 70%);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s linear infinite;
+  }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .thumb .fallback {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; color: var(--muted);
+    font-size: 12px; font-weight: 600; text-align: center; padding: 8px;
+  }
+  .thumb.error .skeleton { display: none; }
+  .thumb.error img { display: none; }
+  .thumb.error .fallback { display: flex; }
+
+  .card-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .card-title {
+    font-size: 17px; font-weight: 600; line-height: 1.25; margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-slug { font-family: var(--mono); font-size: 13px; color: var(--muted); word-break: break-word; }
+  .badge {
+    align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; padding: 4px 9px; border-radius: var(--radius-pill);
+    color: var(--k-default); background: var(--k-default-bg);
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .tag {
+    font-size: 11px; color: var(--muted); background: var(--surface-2);
+    border: 1px solid var(--border); padding: 3px 8px; border-radius: var(--radius-pill);
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+    .card:hover .thumb img.loaded { transform: scale(1.03); }
+  }
+  .card:active { transform: scale(.97); }
+
+  /* Skeleton loading cards */
+  .card.skeleton-card { pointer-events: none; }
+  .card.skeleton-card .card-body > div {
+    height: 12px; border-radius: 6px; background: var(--surface-2);
+    animation: shimmer 1.3s linear infinite;
+    background-image: linear-gradient(100deg, var(--surface-2) 30%, color-mix(in srgb, var(--surface-2) 60%, var(--surface)) 50%, var(--surface-2) 70%);
+    background-size: 200% 100%;
+  }
+
+  /* ============================ States (empty / error) ============================ */
+  .state {
+    text-align: center; padding: 48px 20px; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .state svg { width: 40px; height: 40px; opacity: .7; }
+  .state h3 { margin: 0; font-size: 17px; color: var(--ink); font-weight: 700; }
+  .state p { margin: 0; max-width: 34ch; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 18px; border-radius: var(--radius-pill);
+    font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid transparent;
+    text-decoration: none; transition: transform .12s var(--spring), filter .15s ease;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.outline { background: transparent; color: var(--ink); border-color: var(--border); }
+  .btn.outline:hover { background: var(--surface-2); }
+
+  /* ============================ Modal ============================ */
+  .backdrop {
+    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.5);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  @media (min-width: 640px) { .backdrop { align-items: center; padding: 24px; } }
+  .backdrop.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--surface); width: 100%; max-width: 560px; max-height: 90vh;
+    border-radius: 20px 20px 0 0; box-shadow: var(--shadow-modal);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-direction: column;
+    transform: translateY(24px); transition: transform .28s var(--spring);
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  @media (min-width: 640px) { .modal { border-radius: 20px; } }
+  .backdrop.open .modal { transform: none; }
+  .grab { width: 40px; height: 4px; flex: 0 0 auto; border-radius: 999px; background: var(--border); margin: 10px auto 2px; }
+  @media (min-width: 640px) { .grab { display: none; } }
+
+  .modal .m-thumb { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--surface-2); flex: 0 0 auto; }
+  .modal .m-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .modal .m-thumb .fallback {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-weight: 600;
+  }
+  .modal .m-thumb.error img { display: none; }
+  .modal .m-thumb.error .fallback { display: flex; }
+  .modal-close {
+    position: sticky; top: 8px; align-self: flex-end; z-index: 5; flex: 0 0 auto;
+    margin: 8px 8px -52px 8px;
+    width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 20px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  }
+  .m-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .m-body h2 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .m-slug { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .m-desc { font-size: 15px; line-height: 1.5; margin: 0; }
+  dl.meta { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: start; }
+  dl.meta dt { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  dl.meta dd { margin: 0; font-size: 14px; word-break: break-word; }
+  dl.meta dd.mono { font-family: var(--mono); font-size: 12.5px; }
+  .sha { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .copy-btn {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink);
+    border-radius: 8px; min-height: 44px; padding: 0 14px; cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .copy-btn.fail { color: var(--missing); border-color: var(--missing); }
+  .copy-btn.ok { color: var(--done); border-color: var(--done); }
+  .m-actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+  .m-actions .btn { flex: 1 1 auto; }
+
+  /* ============================ Toast ============================ */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+    background: var(--toast-bg); color: var(--toast-ink); padding: 10px 16px;
+    border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s var(--spring);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+
+  footer.site { text-align: center; color: var(--muted); font-size: 12px; padding: 8px 16px 32px; }
+  footer.site a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <h1 class="wordmark"><span class="dot" aria-hidden="true"></span>ArtLibrary</h1>
+      <p class="countline" id="countline">Loading the asset library…</p>
+    </div>
+  </header>
+
+  <div class="controls" role="search">
+    <div class="wrap">
+      <div class="search" id="searchWrap">
+        <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input id="search" type="search" inputmode="search" placeholder="Search title, slug or tag…" aria-label="Search visuals" autocomplete="off">
+        <button class="clear" id="searchClear" type="button" aria-label="Clear search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="chiprow" id="kindRow" role="group" aria-label="Filter by kind"></div>
+      <div class="chiprow" id="tagRow" role="group" aria-label="Filter by tag"></div>
+    </div>
+  </div>
+
+  <main>
+    <div class="wrap">
+      <section class="needed" id="neededSection" hidden aria-labelledby="neededHead">
+        <div class="section-head">
+          <h2 id="neededHead">Needed vs Done</h2>
+          <span class="summary" id="neededSummary"></span>
+        </div>
+        <div class="progress" role="progressbar" id="progressBar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-label="Art delivered">
+          <span id="progressFill"></span>
+        </div>
+        <ul class="checklist" id="checklist"></ul>
+      </section>
+
+      <section aria-labelledby="galleryHead">
+        <div class="section-head">
+          <h2 id="galleryHead">Gallery</h2>
+          <span class="summary" id="galleryCount"></span>
+        </div>
+        <div class="grid" id="grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site">
+    Live from <a href="https://github.com/Sluborg/ArtLibrary" target="_blank" rel="noopener">Sluborg/ArtLibrary</a> · collection <strong>AssetReport</strong>
+  </footer>
+
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="sr-status" class="visually-hidden" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MANIFEST_URL = "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/asset-index.json";
+  var NEEDS_URL    = "https://raw.githubusercontent.com/Sluborg/game/dev/art-needs.json";
+  var COLLECTION   = "AssetReport";
+
+  var $  = function (s, r) { return (r || document).querySelector(s); };
+  var el = function (tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+  var esc = function (s) { return String(s == null ? "" : s); };
+
+  // ---- state ----
+  var assets = [];            // filtered AssetReport assets, decorated with .slug
+  var needs  = null;          // array or null
+  var query  = "";
+  var activeKind = "";        // "" = all
+  var activeTags = {};        // set of selected tags
+  var manifestSlugs = null;   // Set of derived slugs present
+  var manifestLoaded = false; // true only after the manifest actually resolves
+  var countAnimated = false;  // guard so the indexed count-up runs once
+
+  // ---- slug derivation ----
+  // A filename can be a category-prefixed asset (node-home-keep.png -> home-keep,
+  // icon-resource-wood.png -> wood) OR a name whose slug legitimately keeps the
+  // prefix (the reference sheet node-design-sheet.png IS "node-design-sheet").
+  // We can't tell from the filename alone, so we keep BOTH forms: the stripped
+  // one (nicer for display) and the raw basename. Done-state matching accepts
+  // either, and the display slug prefers whichever the game actually declares.
+  var PREFIXES = ["icon-resource-", "node-", "icon-"]; // longest / most-specific first
+  function slugForms(path) {
+    var raw = String(path || "").split("/").pop().replace(/\.[a-z0-9]+$/i, "");
+    var stripped = raw;
+    for (var i = 0; i < PREFIXES.length; i++) {
+      if (raw.toLowerCase().indexOf(PREFIXES[i]) === 0) { stripped = raw.slice(PREFIXES[i].length); break; }
+    }
+    return { raw: raw, stripped: stripped };
+  }
+
+  function kindTokens(kind) {
+    var k = String(kind || "").toLowerCase();
+    if (k === "illustration") return { c: "var(--k-illustration)", bg: "var(--k-illustration-bg)" };
+    if (k === "wallpaper")    return { c: "var(--k-wallpaper)",    bg: "var(--k-wallpaper-bg)" };
+    if (k === "test-image")   return { c: "var(--k-test-image)",   bg: "var(--k-test-image-bg)" };
+    return { c: "var(--k-default)", bg: "var(--k-default-bg)" };
+  }
+
+  function prefersReduced() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // ---- count-up ----
+  function countUp(node, target, animate) {
+    target = target || 0;
+    if (!animate || prefersReduced() || target === 0) { node.textContent = String(target); return; }
+    var start = null, dur = 550;
+    function step(ts) {
+      if (start == null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      node.textContent = String(Math.round(p * target));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ---- header count line ----
+  // Animate the indexed number only the first time; later re-renders (e.g. when
+  // needs resolve) set it directly so it doesn't visibly snap back to 0.
+  function renderCountLine() {
+    var line = $("#countline");
+    line.innerHTML = "";
+    var nIndexed = el("span", "num");
+    line.appendChild(nIndexed);
+    line.appendChild(document.createTextNode(" visual" + (assets.length === 1 ? "" : "s") + " indexed"));
+    countUp(nIndexed, assets.length, !countAnimated);
+    countAnimated = true;
+
+    if (needs && needs.length) {
+      var missing = needs.filter(function (n) { return !isDone(n); }).length;
+      line.appendChild(sep());
+      var nNeed = el("span", "num");
+      line.appendChild(nNeed);
+      line.appendChild(document.createTextNode(" needed"));
+      countUp(nNeed, needs.length, false);
+
+      line.appendChild(sep());
+      var nMiss = el("span", "num miss" + (missing > 0 ? " pos" : ""));
+      line.appendChild(nMiss);
+      line.appendChild(document.createTextNode(" missing"));
+      countUp(nMiss, missing, false);
+    }
+    function sep() { return el("span", "sep", "·"); }
+  }
+
+  // Concise, polite screen-reader announcement (used for filter result counts).
+  function srAnnounce(msg) { var s = $("#sr-status"); if (s) s.textContent = msg; }
+
+  // ---- needed vs done ----
+  function isDone(need) {
+    if (!manifestSlugs) return false;
+    return manifestSlugs.has(String(need.slug || "").toLowerCase());
+  }
+
+  // The game's art-needs.json is the source of truth for slug spelling. When it's
+  // loaded, show each asset under the exact slug the game declares (e.g. keep
+  // "node-design-sheet" instead of stripping it to "design-sheet"). Returns true
+  // if any display slug changed so the caller can re-render the gallery.
+  function resolveDisplaySlugs() {
+    if (!needs || !assets.length) return false;
+    var declared = {};
+    needs.forEach(function (n) { declared[String(n.slug || "").toLowerCase()] = true; });
+    var changed = false;
+    assets.forEach(function (a) {
+      var want = a._stripped;
+      if (declared[String(a._raw).toLowerCase()] && !declared[String(a._stripped).toLowerCase()]) {
+        want = a._raw; // the game declares the un-stripped name for this asset
+      }
+      if (a.slug !== want) { a.slug = want; changed = true; }
+    });
+    return changed;
+  }
+
+  function renderNeeded() {
+    var section = $("#neededSection");
+    // Only meaningful once BOTH the needs list and the manifest have loaded —
+    // otherwise every item would falsely read MISSING against a null slug set.
+    if (!needs || !needs.length || !manifestLoaded) { section.hidden = true; return; }
+    section.hidden = false;
+
+    var doneCount = needs.filter(isDone).length;
+    $("#neededSummary").textContent = doneCount + " of " + needs.length + " delivered";
+
+    var bar = $("#progressBar");
+    bar.setAttribute("aria-valuemax", String(needs.length));
+    bar.setAttribute("aria-valuenow", String(doneCount));
+    var pct = needs.length ? Math.round((doneCount / needs.length) * 100) : 0;
+    requestAnimationFrame(function () { $("#progressFill").style.width = pct + "%"; });
+
+    var list = $("#checklist");
+    list.innerHTML = "";
+    var sorted = needs.slice().sort(function (a, b) {
+      var da = isDone(a) ? 1 : 0, db = isDone(b) ? 1 : 0;
+      if (da !== db) return da - db;                       // missing first
+      return String(a.slug).localeCompare(String(b.slug));
+    });
+    sorted.forEach(function (n) {
+      var done = isDone(n);
+      var li = el("li", "need-item" + (done ? "" : " is-missing"));
+      var meta = el("div", "meta");
+      meta.appendChild(el("div", "slug", esc(n.slug)));
+      var desc = el("div", "desc");
+      if (n.kind) { var k = el("span", "k", esc(n.kind)); desc.appendChild(k); desc.appendChild(document.createTextNode(" · ")); }
+      desc.appendChild(document.createTextNode(esc(n.description || "")));
+      meta.appendChild(desc);
+      li.appendChild(meta);
+
+      var pill = el("span", "status-pill " + (done ? "done" : "missing"));
+      pill.appendChild(document.createTextNode(done ? "✓ DONE" : "! MISSING · needs art"));
+      li.appendChild(pill);
+      list.appendChild(li);
+    });
+  }
+
+  // ---- controls ----
+  function buildFilters() {
+    var kinds = {}, tags = {};
+    assets.forEach(function (a) {
+      if (a.kind) kinds[a.kind] = (kinds[a.kind] || 0) + 1;
+      (a.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
+    });
+
+    var kindRow = $("#kindRow");
+    kindRow.innerHTML = "";
+    kindRow.appendChild(el("span", "label", "Kind"));
+    kindRow.appendChild(makeKindChip("", "All", assets.length));
+    Object.keys(kinds).sort().forEach(function (k) {
+      kindRow.appendChild(makeKindChip(k, k, kinds[k]));
+    });
+
+    var tagRow = $("#tagRow");
+    tagRow.innerHTML = "";
+    var tagNames = Object.keys(tags).sort(function (a, b) { return tags[b] - tags[a] || a.localeCompare(b); });
+    if (tagNames.length) {
+      tagRow.hidden = false;
+      tagRow.appendChild(el("span", "label", "Tag"));
+      tagNames.forEach(function (t) { tagRow.appendChild(makeTagChip(t)); });
+    } else {
+      tagRow.hidden = true;
+    }
+    syncActiveStates();
+  }
+
+  function makeKindChip(value, label, count) {
+    var b = el("button", "chip");
+    b.type = "button";
+    b.dataset.kind = value;
+    b.setAttribute("aria-pressed", "false");
+    b.appendChild(document.createTextNode(label));
+    if (count != null) { var c = el("span", "count", String(count)); b.appendChild(c); }
+    b.addEventListener("click", function () {
+      activeKind = value;
+      syncActiveStates();
+      render();
+    });
+    return b;
+  }
+
+  function makeTagChip(tag) {
+    var b = el("button", "chip");
+    b.type = "button";
+    b.dataset.tag = tag;
+    b.setAttribute("aria-pressed", "false");
+    b.textContent = tag;
+    b.addEventListener("click", function () {
+      if (activeTags[tag]) delete activeTags[tag]; else activeTags[tag] = true;
+      syncActiveStates();
+      render();
+    });
+    return b;
+  }
+
+  function anyFilterActive() {
+    return query || activeKind || Object.keys(activeTags).length;
+  }
+
+  function syncActiveStates() {
+    Array.prototype.forEach.call(document.querySelectorAll("#kindRow .chip"), function (c) {
+      c.setAttribute("aria-pressed", (c.dataset.kind === activeKind) ? "true" : "false");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#tagRow .chip"), function (c) {
+      c.setAttribute("aria-pressed", activeTags[c.dataset.tag] ? "true" : "false");
+    });
+    // clear-filters chip on the kind row
+    var existing = $("#clearChip");
+    if (anyFilterActive()) {
+      if (!existing) {
+        var chip = el("button", "chip clear-filters");
+        chip.id = "clearChip"; chip.type = "button"; chip.textContent = "✕ Clear filters";
+        chip.addEventListener("click", resetFilters);
+        $("#kindRow").appendChild(chip);
+      }
+    } else if (existing) {
+      existing.remove();
+    }
+  }
+
+  function resetFilters() {
+    query = ""; activeKind = ""; activeTags = {};
+    var input = $("#search"); input.value = ""; $("#searchWrap").classList.remove("has-value");
+    syncActiveStates();
+    render();
+  }
+
+  // ---- gallery ----
+  function matches(a) {
+    if (activeKind && a.kind !== activeKind) return false;
+    var tagKeys = Object.keys(activeTags);
+    if (tagKeys.length) {
+      var at = (a.tags || []);
+      for (var i = 0; i < tagKeys.length; i++) { if (at.indexOf(tagKeys[i]) === -1) return false; }
+    }
+    if (query) {
+      var q = query.toLowerCase();
+      var hay = [a.title, a.slug, a._raw, a._stripped].concat(a.tags || []).join(" ").toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  function render() {
+    var grid = $("#grid");
+    var list = assets.filter(matches);
+    var label = list.length + (list.length === 1 ? " visual" : " visuals");
+    $("#galleryCount").textContent = label;
+    srAnnounce(anyFilterActive() ? label + " match your filters" : label + " indexed");
+    grid.innerHTML = "";
+
+    if (!list.length) {
+      grid.appendChild(emptyState());
+      return;
+    }
+    list.forEach(function (a, i) {
+      var card = buildCard(a);
+      if (!prefersReduced()) card.style.animationDelay = Math.min(i * 30, 300) + "ms";
+      grid.appendChild(card);
+    });
+  }
+
+  function emptyState() {
+    var d = el("div", "state"); d.setAttribute("role", "status");
+    d.style.gridColumn = "1 / -1";
+    d.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg>';
+    d.appendChild(el("h3", null, "No visuals match"));
+    d.appendChild(el("p", null, "Try clearing a filter or searching for something else."));
+    var btn = el("button", "btn primary", "Reset filters"); btn.type = "button";
+    btn.addEventListener("click", resetFilters);
+    d.appendChild(btn);
+    return d;
+  }
+
+  function attachThumb(wrap, img, url, alt, kind) {
+    img.alt = alt;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("load", function () { img.classList.add("loaded"); var sk = $(".skeleton", wrap); if (sk) sk.remove(); });
+    img.addEventListener("error", function () { wrap.classList.add("error"); });
+    img.src = url;
+  }
+
+  function buildCard(a) {
+    var card = el("button", "card");
+    card.type = "button";
+    card.setAttribute("aria-label", a.title + ", " + (a.kind || "asset") + ", slug " + a.slug);
+
+    var thumb = el("div", "thumb");
+    thumb.appendChild(el("div", "skeleton"));
+    var img = el("img");
+    var fb = el("div", "fallback");
+    fb.innerHTML = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg>';
+    fb.appendChild(el("span", null, "art coming soon"));
+    thumb.appendChild(img);
+    thumb.appendChild(fb);
+    attachThumb(thumb, img, a.raw_url, a.title + " — " + (a.kind || "asset"), a.kind);
+    card.appendChild(thumb);
+
+    var body = el("div", "card-body");
+    body.appendChild(el("h3", "card-title", a.title));
+    body.appendChild(el("div", "card-slug", a.slug));
+    var badge = el("span", "badge", (a.kind || "asset"));
+    var kt = kindTokens(a.kind);
+    badge.style.color = kt.c; badge.style.background = kt.bg;
+    body.appendChild(badge);
+
+    if (a.tags && a.tags.length) {
+      var tags = el("div", "tags");
+      a.tags.slice(0, 3).forEach(function (t) { tags.appendChild(el("span", "tag", t)); });
+      if (a.tags.length > 3) tags.appendChild(el("span", "tag", "+" + (a.tags.length - 3)));
+      body.appendChild(tags);
+    }
+    card.appendChild(body);
+
+    card.addEventListener("click", function () { openModal(a, card); });
+    return card;
+  }
+
+  // ---- modal ----
+  var lastFocused = null;
+  function openModal(a, originEl) {
+    lastFocused = originEl || document.activeElement;
+    var modal = $("#modal");
+    modal.innerHTML = "";
+
+    var close = el("button", "modal-close", "✕");
+    close.type = "button"; close.setAttribute("aria-label", "Close");
+    close.addEventListener("click", closeModal);
+
+    var grab = el("div", "grab");
+
+    var thumb = el("div", "m-thumb");
+    var img = el("img");
+    var fb = el("div", "fallback");
+    fb.innerHTML = '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg><span>image unavailable</span>';
+    thumb.appendChild(img); thumb.appendChild(fb);
+    img.alt = a.title + " — " + (a.kind || "asset");
+    img.addEventListener("error", function () { thumb.classList.add("error"); });
+    img.src = a.raw_url;
+
+    var b = el("div", "m-body");
+    var h = el("h2", null, a.title); h.id = "modalTitle";
+    b.appendChild(h);
+    b.appendChild(el("div", "m-slug", a.slug));
+    var badge = el("span", "badge", (a.kind || "asset"));
+    var kt = kindTokens(a.kind); badge.style.color = kt.c; badge.style.background = kt.bg;
+    b.appendChild(badge);
+    if (a.description) b.appendChild(el("p", "m-desc", a.description));
+
+    var dl = el("dl", "meta");
+    function row(term, ddNode) { dl.appendChild(el("dt", null, term)); dl.appendChild(ddNode); }
+    if (a.dimensions && a.dimensions.length === 2) row("Dimensions", el("dd", "mono", a.dimensions[0] + " × " + a.dimensions[1]));
+    if (a.collection) row("Collection", el("dd", null, a.collection));
+    if (a.tags && a.tags.length) {
+      var td = el("dd"); var wrap = el("div", "tags");
+      a.tags.forEach(function (t) { wrap.appendChild(el("span", "tag", t)); });
+      td.appendChild(wrap); row("Tags", td);
+    }
+    if (a.sha256) {
+      var dd = el("dd", "mono");
+      var sha = el("span", "sha");
+      var short = a.sha256.slice(0, 10) + "…" + a.sha256.slice(-8);
+      sha.appendChild(el("span", null, short));
+      var cp = el("button", "copy-btn", "Copy"); cp.type = "button";
+      cp.addEventListener("click", function () { copyText(a.sha256, cp); });
+      sha.appendChild(cp);
+      dd.appendChild(sha); row("SHA-256", dd);
+    }
+    b.appendChild(dl);
+
+    var actions = el("div", "m-actions");
+    if (a.raw_url)    actions.appendChild(link("btn primary", "View raw", a.raw_url));
+    if (a.github_url) actions.appendChild(link("btn outline", "Open on GitHub", a.github_url));
+    b.appendChild(actions);
+
+    modal.appendChild(grab);
+    modal.appendChild(close);
+    modal.appendChild(thumb);
+    modal.appendChild(b);
+
+    var backdrop = $("#backdrop");
+    backdrop.classList.add("open");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    close.focus();
+    document.addEventListener("keydown", onKeydown, true);
+  }
+
+  function link(cls, label, href) {
+    var a = el("a", cls, label);
+    a.href = href; a.target = "_blank"; a.rel = "noopener";
+    return a;
+  }
+
+  function closeModal() {
+    var backdrop = $("#backdrop");
+    if (!backdrop.classList.contains("open")) return;
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", onKeydown, true);
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  function onKeydown(e) {
+    if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+    if (e.key === "Tab") {
+      var modal = $("#modal");
+      var f = modal.querySelectorAll('a[href], button:not([disabled])');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  $("#backdrop").addEventListener("click", function (e) { if (e.target === this) closeModal(); });
+
+  // ---- clipboard ----
+  function copyText(text, btn) {
+    function ok()   { if (btn) { btn.classList.remove("fail"); btn.classList.add("ok"); btn.textContent = "Copied ✓"; reset(btn); } showToast("SHA-256 copied"); }
+    function fail() { if (btn) { btn.classList.remove("ok"); btn.classList.add("fail"); btn.textContent = "Copy failed"; reset(btn); } showToast("Couldn't copy — select it manually"); }
+    function reset(b) { setTimeout(function () { b.classList.remove("ok", "fail"); b.textContent = "Copy"; }, 1400); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok, function () { legacyCopy(text) ? ok() : fail(); });
+    } else { legacyCopy(text) ? ok() : fail(); }
+  }
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  var toastTimer = null;
+  function showToast(msg) {
+    var t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1400);
+  }
+
+  // ---- search wiring ----
+  var searchInput = $("#search");
+  var debounceTimer = null;
+  searchInput.addEventListener("input", function () {
+    $("#searchWrap").classList.toggle("has-value", !!searchInput.value);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      query = searchInput.value.trim();
+      syncActiveStates();
+      render();
+    }, 120);
+  });
+  $("#searchClear").addEventListener("click", function () {
+    searchInput.value = ""; query = "";
+    $("#searchWrap").classList.remove("has-value");
+    searchInput.focus();
+    syncActiveStates(); render();
+  });
+
+  // ---- loading skeletons ----
+  function showSkeletons() {
+    var grid = $("#grid"); grid.innerHTML = "";
+    for (var i = 0; i < 6; i++) {
+      var c = el("div", "card skeleton-card");
+      c.appendChild(el("div", "thumb")).appendChild(el("div", "skeleton"));
+      var body = el("div", "card-body");
+      body.appendChild(el("div")); var w = el("div"); w.style.width = "60%"; body.appendChild(w);
+      c.appendChild(body);
+      grid.appendChild(c);
+    }
+  }
+
+  function showManifestError(reason) {
+    manifestLoaded = false;
+    $("#countline").textContent = "Couldn't load the library";
+    $("#neededSection").hidden = true;   // needs are meaningless without the manifest
+    var grid = $("#grid"); grid.innerHTML = "";
+    var d = el("div", "state"); d.style.gridColumn = "1 / -1"; d.setAttribute("role", "alert");
+    d.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/></svg>';
+    d.appendChild(el("h3", null, "Couldn't load the asset manifest"));
+    d.appendChild(el("p", null, reason || "Please check your connection and try again."));
+    var btn = el("button", "btn primary", "Retry"); btn.type = "button";
+    btn.addEventListener("click", init);
+    d.appendChild(btn);
+    grid.appendChild(d);
+  }
+
+  // ---- data loading ----
+  function loadManifest() {
+    return fetch(MANIFEST_URL, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status + " fetching the manifest.");
+      return res.json();
+    }).then(function (data) {
+      var all = (data && Array.isArray(data.assets)) ? data.assets : [];
+      assets = all.filter(function (a) { return a && a.collection === COLLECTION; })
+                  .map(function (a) {
+                    var f = slugForms(a.path);
+                    a._raw = f.raw; a._stripped = f.stripped;
+                    a.slug = f.stripped;   // default display; refined once needs load
+                    return a;
+                  });
+      // A produced slug is "present" under BOTH forms so a need matches whether it
+      // declares the stripped name (home-keep) or the full one (node-design-sheet).
+      manifestSlugs = new Set();
+      assets.forEach(function (a) {
+        if (!a.raw_url) return;
+        manifestSlugs.add(String(a._raw).toLowerCase());
+        manifestSlugs.add(String(a._stripped).toLowerCase());
+      });
+      manifestLoaded = true;
+      resolveDisplaySlugs();
+    });
+  }
+
+  function loadNeeds() {
+    // best-effort; never blocks the gallery
+    return fetch(NEEDS_URL, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error("needs " + res.status);
+      return res.json();
+    }).then(function (data) {
+      var arr = Array.isArray(data) ? data : (data && Array.isArray(data.needs) ? data.needs : null);
+      needs = (arr && arr.length) ? arr : null;
+    }).catch(function () { needs = null; });
+  }
+
+  // Keep the sticky controls flush under the header no matter how tall it is
+  // (the count line can wrap on narrow screens / large type).
+  var headerEl = document.querySelector("header.site");
+  function setHeaderOffset() {
+    if (headerEl) document.documentElement.style.setProperty("--header-h", headerEl.offsetHeight + "px");
+  }
+  window.addEventListener("resize", setHeaderOffset);
+
+  function init() {
+    manifestLoaded = false;
+    showSkeletons();
+    $("#countline").textContent = "Loading the asset library…";
+    setHeaderOffset();
+
+    // Manifest and needs load independently; the needed-vs-done panel depends on
+    // BOTH, so re-render it whenever either finishes.
+    loadManifest().then(function () {
+      buildFilters();
+      render();
+      renderCountLine();
+      renderNeeded();        // in case needs already resolved first
+      setHeaderOffset();
+    }).catch(function (err) {
+      showManifestError(err && err.message);
+      setHeaderOffset();
+    });
+
+    loadNeeds().then(function () {
+      if (manifestLoaded && resolveDisplaySlugs()) render(); // relabel cards to the slugs the game declares
+      renderNeeded();        // no-ops until the manifest has loaded (guarded)
+      if (manifestLoaded) { renderCountLine(); setHeaderOffset(); }
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
