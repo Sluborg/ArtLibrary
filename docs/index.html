@@ -469,17 +469,20 @@
   var countAnimated = false;  // guard so the indexed count-up runs once
 
   // ---- slug derivation ----
+  // A filename can be a category-prefixed asset (node-home-keep.png -> home-keep,
+  // icon-resource-wood.png -> wood) OR a name whose slug legitimately keeps the
+  // prefix (the reference sheet node-design-sheet.png IS "node-design-sheet").
+  // We can't tell from the filename alone, so we keep BOTH forms: the stripped
+  // one (nicer for display) and the raw basename. Done-state matching accepts
+  // either, and the display slug prefers whichever the game actually declares.
   var PREFIXES = ["icon-resource-", "node-", "icon-"]; // longest / most-specific first
-  function deriveSlug(path) {
-    var base = String(path || "").split("/").pop();
-    base = base.replace(/\.[a-z0-9]+$/i, "");           // strip extension
+  function slugForms(path) {
+    var raw = String(path || "").split("/").pop().replace(/\.[a-z0-9]+$/i, "");
+    var stripped = raw;
     for (var i = 0; i < PREFIXES.length; i++) {
-      if (base.toLowerCase().indexOf(PREFIXES[i]) === 0) {
-        base = base.slice(PREFIXES[i].length);
-        break;
-      }
+      if (raw.toLowerCase().indexOf(PREFIXES[i]) === 0) { stripped = raw.slice(PREFIXES[i].length); break; }
     }
-    return base;
+    return { raw: raw, stripped: stripped };
   }
 
   function kindTokens(kind) {
@@ -544,6 +547,25 @@
   function isDone(need) {
     if (!manifestSlugs) return false;
     return manifestSlugs.has(String(need.slug || "").toLowerCase());
+  }
+
+  // The game's art-needs.json is the source of truth for slug spelling. When it's
+  // loaded, show each asset under the exact slug the game declares (e.g. keep
+  // "node-design-sheet" instead of stripping it to "design-sheet"). Returns true
+  // if any display slug changed so the caller can re-render the gallery.
+  function resolveDisplaySlugs() {
+    if (!needs || !assets.length) return false;
+    var declared = {};
+    needs.forEach(function (n) { declared[String(n.slug || "").toLowerCase()] = true; });
+    var changed = false;
+    assets.forEach(function (a) {
+      var want = a._stripped;
+      if (declared[String(a._raw).toLowerCase()] && !declared[String(a._stripped).toLowerCase()]) {
+        want = a._raw; // the game declares the un-stripped name for this asset
+      }
+      if (a.slug !== want) { a.slug = want; changed = true; }
+    });
+    return changed;
   }
 
   function renderNeeded() {
@@ -687,7 +709,7 @@
     }
     if (query) {
       var q = query.toLowerCase();
-      var hay = [a.title, a.slug].concat(a.tags || []).join(" ").toLowerCase();
+      var hay = [a.title, a.slug, a._raw, a._stripped].concat(a.tags || []).join(" ").toLowerCase();
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
@@ -950,10 +972,22 @@
     }).then(function (data) {
       var all = (data && Array.isArray(data.assets)) ? data.assets : [];
       assets = all.filter(function (a) { return a && a.collection === COLLECTION; })
-                  .map(function (a) { a.slug = deriveSlug(a.path); return a; });
-      manifestSlugs = new Set(assets.filter(function (a) { return a.raw_url; })
-                                    .map(function (a) { return String(a.slug).toLowerCase(); }));
+                  .map(function (a) {
+                    var f = slugForms(a.path);
+                    a._raw = f.raw; a._stripped = f.stripped;
+                    a.slug = f.stripped;   // default display; refined once needs load
+                    return a;
+                  });
+      // A produced slug is "present" under BOTH forms so a need matches whether it
+      // declares the stripped name (home-keep) or the full one (node-design-sheet).
+      manifestSlugs = new Set();
+      assets.forEach(function (a) {
+        if (!a.raw_url) return;
+        manifestSlugs.add(String(a._raw).toLowerCase());
+        manifestSlugs.add(String(a._stripped).toLowerCase());
+      });
       manifestLoaded = true;
+      resolveDisplaySlugs();
     });
   }
 
@@ -996,6 +1030,7 @@
     });
 
     loadNeeds().then(function () {
+      if (manifestLoaded && resolveDisplaySlugs()) render(); // relabel cards to the slugs the game declares
       renderNeeded();        // no-ops until the manifest has loaded (guarded)
       if (manifestLoaded) { renderCountLine(); setHeaderOffset(); }
     });
