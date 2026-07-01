@@ -128,6 +128,11 @@
   .countline .num { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
   .countline .num.miss.pos { color: var(--missing); }
   .countline .sep { opacity: .5; margin: 0 5px; }
+  .snapshot-note {
+    margin: 6px 0 0; font-size: 11.5px; line-height: 1.35; font-weight: 600;
+    color: var(--k-test-image); background: var(--k-test-image-bg);
+    padding: 6px 10px; border-radius: 8px;
+  }
 
   /* ============================ Controls ============================ */
   .controls {
@@ -393,6 +398,7 @@
     <div class="wrap">
       <h1 class="wordmark"><span class="dot" aria-hidden="true"></span>ArtLibrary</h1>
       <p class="countline" id="countline">Loading the asset library…</p>
+      <p class="snapshot-note" id="snapshotNote" hidden>Offline snapshot — live network is blocked here. Open on GitHub Pages or in a browser for live data &amp; thumbnails.</p>
     </div>
   </header>
 
@@ -467,6 +473,12 @@
   var manifestSlugs = null;   // Set of derived slugs present
   var manifestLoaded = false; // true only after the manifest actually resolves
   var countAnimated = false;  // guard so the indexed count-up runs once
+  var usingSnapshot = false;  // true when live fetch was blocked and we fell back
+
+  // Bundled snapshot — used only if the live fetch is blocked (e.g. inside the
+  // Claude Artifacts sandbox). Injected at build time; null when not baked in.
+  var EMBEDDED_MANIFEST = /*@@MANIFEST@@*/{"schema_version":1,"generated_at":"2026-06-30T21:07:12.562132+00:00","repository":"Sluborg/ArtLibrary","branch":"main","asset_count":8,"total_bytes":9554722,"duplicate_count":0,"duplicates":[],"embeddings":null,"assets":[{"schema_version":1,"kind":"test-image","title":"Smoke test 8x8 icon","description":"Tiny generated PNG used to test ArtLibrary upload, metadata, indexing and automation flow.","prompt":"Programmatically generated 8x8 checker icon for smoke testing.","generator":"Lubot Python smoke test","created":"2026-06-30T00:04:21.520705+00:00","license":"internal-test","tags":["smoke-test","automation","tiny-icon"],"original_filename":"smoke-test-8x8.png","collection":null,"derived_from":null,"embeddings":null,"path":"Generated/smoke-test-8x8.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"33c81a7a689d437cb91221d83f90ab37ca074c61b0e7d000c47eef9584992842","bytes":619,"dimensions":[8,8],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png","thumbnail":"Generated/smoke-test-8x8.thumb.png","has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"test-image","title":"testA","description":"Batch upload test image A","prompt":"Programmatically generated test image A","generator":"Lubot","created":"2026-06-30T00:50:53.546714+00:00","license":"internal-test","tags":["test","batch","A"],"original_filename":"testA.png","collection":null,"derived_from":null,"embeddings":null,"path":"Generated/testA.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"e92810152cdd2702890fee0b518609c6f8131347cda19ae0d0efc8fc7542d8a6","bytes":460,"dimensions":[8,8],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testA.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testA.png","thumbnail":"Generated/testA.thumb.png","has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"test-image","title":"testB","description":"Batch upload test image B","prompt":"Programmatically generated test image B","generator":"Lubot","created":"2026-06-30T00:50:53.548997+00:00","license":"internal-test","tags":["test","batch","B"],"original_filename":"testB.png","collection":null,"derived_from":null,"embeddings":null,"path":"Generated/testB.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"70fc4796180c106b8edf8b81b345744617ae83eccf78eade07a380262c132cd3","bytes":460,"dimensions":[8,8],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testB.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testB.png","thumbnail":"Generated/testB.thumb.png","has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"test-image","title":"testC","description":"Batch upload test image C","prompt":"Programmatically generated test image C","generator":"Lubot","created":"2026-06-30T00:50:53.551173+00:00","license":"internal-test","tags":["test","batch","C"],"original_filename":"testC.png","collection":null,"derived_from":null,"embeddings":null,"path":"Generated/testC.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"429d49c57ae1dc334d3285e68cd29a01ed3e728429537b16014bd52aba2594e0","bytes":460,"dimensions":[8,8],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testC.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testC.png","thumbnail":"Generated/testC.thumb.png","has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"illustration","title":"Asset Report - World Map (Proposed Candidate v2)","description":"PROPOSED candidate overworld/world map for Asset Report, v2 - a revision of map-overworld that incorporates the theme fit-notes: a warm gold-hour wash (sun-glow from the upper-left), a dark-corner cloud vignette, and a warmer golden palette, while keeping terrain legible under the gold node rings. Painterly oblique birds-eye continent with ornate gold border and compass rose; the board the building map-nodes sit on. Pending sign-off.","prompt":"unknown - original prompt not recorded","generator":"unknown","created":"2026-06-30T21:03:17.045913+00:00","license":"internal-game-art","tags":["asset-report","world-map","overworld","map","backdrop","reference","moodboard","proposed","candidate","v2"],"original_filename":"map-overworld-v2.png","collection":"AssetReport","derived_from":"Illustrations/AssetReport/map-overworld.png","embeddings":null,"path":"Illustrations/AssetReport/map-overworld-v2.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"04020e90ecb3270806ac279fc5f2a3349320665caae9b6a7b27ae0b12e740b1f","bytes":3022211,"dimensions":[1536,1024],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/map-overworld-v2.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld-v2.png","thumbnail":null,"has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"illustration","title":"Asset Report - World Map (Proposed Candidate)","description":"PROPOSED candidate overworld/world map for Asset Report - a painterly oblique birds-eye continent (forested west, central plains, arid badlands and snow-capped mountains to the north/east, rivers and coastline) framed by an ornate gold border with a compass rose. Intended as the board the building map-nodes sit on. Muted earth palette so the warm gold node rings pop. Pending sign-off and a possible warmer gold-hour wash plus dark-corner vignette to match the title-screen theme.","prompt":"unknown - original prompt not recorded","generator":"unknown","created":"2026-06-30T20:59:30.589809+00:00","license":"internal-game-art","tags":["asset-report","world-map","overworld","map","backdrop","reference","moodboard","proposed","candidate"],"original_filename":"map-overworld.png","collection":"AssetReport","derived_from":null,"embeddings":null,"path":"Illustrations/AssetReport/map-overworld.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d","bytes":2874448,"dimensions":[1536,1024],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/map-overworld.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png","thumbnail":null,"has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"illustration","title":"Asset Report - Building Node Design Sheet","description":"Reference plate defining the Asset Report map-node visual system: the gold Base Ring (consistent for all), the themed isometric building scene that overlaps the ring, the circular Top Badge node-type identifier, and the warm epic rim light, annotated, with the current 15-building roster (Home Keep, Grand Citadel, Settlement, Lumber Camp, Quarry, Farmland, Iron Mine, Gold Mine, Academy, Forge, Barracks, Archer Tower, Wall, Temple, Market).","prompt":"unknown - original prompt not recorded","generator":"unknown","created":"2026-06-30T20:53:36.733032+00:00","license":"internal-game-art","tags":["asset-report","reference","moodboard","building-nodes"],"original_filename":"node-design-sheet.png","collection":"AssetReport","derived_from":null,"embeddings":null,"path":"Illustrations/AssetReport/node-design-sheet.png","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"f351d19f69386261dc00121c8c81a3798f13b304a59099b28c0a3a45c64d293b","bytes":2122099,"dimensions":[1536,1024],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/node-design-sheet.png","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/node-design-sheet.png","thumbnail":null,"has_embedded_metadata":true,"source":"github-actions-artlibrary"},{"schema_version":1,"kind":"wallpaper","title":"Asset Report - Title Screen","description":"Canonical title/key-art for the game Asset Report and the master theme anchor for all Asset Report visuals: a weary fantasy clerk stamping quest-approval forms at an ink-stained desk (clipboard, abacus, wax seals, 'ITEMIZE EVERYTHING') while heroes, a radiant sky-god and a dragon clash in glory behind. Warm gold + divine light, blue-gem accents, dark vignette, painterly illustrative rendering, ornate engraved title framing.","prompt":"unknown - original prompt not recorded","generator":"unknown","created":"2026-06-30T20:53:36.679763+00:00","license":"internal-game-art","tags":["asset-report","key-art","title-screen","theme","splash"],"original_filename":"title-screen.jpg","collection":"AssetReport","derived_from":null,"embeddings":null,"path":"Wallpapers/AssetReport/title-screen.jpg","repository":"Sluborg/ArtLibrary","branch":"main","sha256":"7f962ce8f5b1ce9a326041a2e3055e7cb4f0f0726127a5e6141b1be6b597e6cf","bytes":1533965,"dimensions":[1080,2115],"github_url":"https://github.com/Sluborg/ArtLibrary/blob/main/Wallpapers/AssetReport/title-screen.jpg","raw_url":"https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Wallpapers/AssetReport/title-screen.jpg","thumbnail":null,"has_embedded_metadata":true,"source":"github-actions-artlibrary"}]}/*@@END@@*/;
+  var EMBEDDED_NEEDS    = /*@@NEEDS@@*/{"version":1,"description":"The game's declared art demand list (NEEDED). Each entry is a slug the game expects to exist as a visual in Sluborg/ArtLibrary (collection AssetReport). Every kind:node / kind:resource slug must be a NodeType / ResourceType value in web/src/art/enums.ts (enforced by web/src/art/art-needs.test.ts); kind:ui covers screens, map backdrops, reference sheets, and not-yet-formalized needs. Run `npm run reconcile` to compare this NEEDED list against ArtLibrary's live asset-index.json (DONE). See docs/ART.md, docs/ROADMAP.md, and web/docs/ART.md.","needs":[{"slug":"home-keep","kind":"node","description":"Player's home base keep node.","feature":"overworld-map-nodes"},{"slug":"grand-citadel","kind":"node","description":"Landmark citadel node.","feature":"overworld-map-nodes"},{"slug":"settlement","kind":"node","description":"Civic settlement node.","feature":"overworld-map-nodes"},{"slug":"lumber-camp","kind":"node","description":"Wood-producing resource node.","feature":"resource-economy"},{"slug":"quarry","kind":"node","description":"Stone-producing resource node.","feature":"resource-economy"},{"slug":"farmland","kind":"node","description":"Food-producing resource node.","feature":"resource-economy"},{"slug":"iron-mine","kind":"node","description":"Iron-producing resource node.","feature":"resource-economy"},{"slug":"gold-mine","kind":"node","description":"Gold-producing resource node.","feature":"resource-economy"},{"slug":"market","kind":"node","description":"Economy / trade market node.","feature":"resource-economy"},{"slug":"academy","kind":"node","description":"Research academy node.","feature":"research-crafting-divine"},{"slug":"forge","kind":"node","description":"Crafting forge node.","feature":"research-crafting-divine"},{"slug":"temple","kind":"node","description":"Divine temple node.","feature":"research-crafting-divine"},{"slug":"barracks","kind":"node","description":"Military barracks node.","feature":"military-defense"},{"slug":"archer-tower","kind":"node","description":"Defensive archer tower node.","feature":"military-defense"},{"slug":"wall","kind":"node","description":"Defensive wall node.","feature":"military-defense"},{"slug":"wood","kind":"resource","description":"Wood resource icon.","feature":"resource-economy"},{"slug":"stone","kind":"resource","description":"Stone resource icon.","feature":"resource-economy"},{"slug":"food","kind":"resource","description":"Food resource icon.","feature":"resource-economy"},{"slug":"iron","kind":"resource","description":"Iron resource icon.","feature":"resource-economy"},{"slug":"gold","kind":"resource","description":"Gold resource icon.","feature":"resource-economy"},{"slug":"knowledge","kind":"resource","description":"Knowledge resource icon.","feature":"research-crafting-divine"},{"slug":"faith","kind":"resource","description":"Faith resource icon.","feature":"research-crafting-divine"},{"slug":"approval","kind":"resource","description":"Approval / civic-sentiment resource icon.","feature":"resource-economy"},{"slug":"guild-office","kind":"ui","description":"Adventurer guild office (Fighter/Ranger/Mage guilds). Planned map node not yet in the NodeType roster; kept as ui until promoted to a formal node.","feature":"overworld-map-nodes"},{"slug":"map-overworld","kind":"ui","description":"Overworld map backdrop (candidate).","feature":"ui-branding"},{"slug":"map-overworld-v2","kind":"ui","description":"Overworld map backdrop (candidate v2).","feature":"ui-branding"},{"slug":"node-design-sheet","kind":"ui","description":"Reference sheet for building-node visual style.","feature":"overworld-map-nodes"},{"slug":"title-screen","kind":"ui","description":"Title / key-art splash screen.","feature":"ui-branding"},{"slug":"ui-nameplate","kind":"ui","description":"UI nameplate / label frame placeholder used across panels.","feature":"ui-branding"}]}/*@@END@@*/;
 
   // ---- slug derivation ----
   // A filename can be a category-prefixed asset (node-home-keep.png -> home-keep,
@@ -965,30 +977,38 @@
   }
 
   // ---- data loading ----
+  // Fetch live first. Some sandboxes (e.g. the Claude Artifacts viewer) block
+  // outbound network — "Failed to fetch" — so we fall back to a bundled snapshot
+  // baked into this file at build time, and flag that we're offline.
+  function processManifest(data) {
+    var all = (data && Array.isArray(data.assets)) ? data.assets : [];
+    assets = all.filter(function (a) { return a && a.collection === COLLECTION; })
+                .map(function (a) {
+                  var f = slugForms(a.path);
+                  a._raw = f.raw; a._stripped = f.stripped;
+                  a.slug = f.stripped;   // default display; refined once needs load
+                  return a;
+                });
+    // A produced slug is "present" under BOTH forms so a need matches whether it
+    // declares the stripped name (home-keep) or the full one (node-design-sheet).
+    manifestSlugs = new Set();
+    assets.forEach(function (a) {
+      if (!a.raw_url) return;
+      manifestSlugs.add(String(a._raw).toLowerCase());
+      manifestSlugs.add(String(a._stripped).toLowerCase());
+    });
+    manifestLoaded = true;
+    resolveDisplaySlugs();
+  }
+
   function loadManifest() {
     return fetch(MANIFEST_URL, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status + " fetching the manifest.");
       return res.json();
-    }).then(function (data) {
-      var all = (data && Array.isArray(data.assets)) ? data.assets : [];
-      assets = all.filter(function (a) { return a && a.collection === COLLECTION; })
-                  .map(function (a) {
-                    var f = slugForms(a.path);
-                    a._raw = f.raw; a._stripped = f.stripped;
-                    a.slug = f.stripped;   // default display; refined once needs load
-                    return a;
-                  });
-      // A produced slug is "present" under BOTH forms so a need matches whether it
-      // declares the stripped name (home-keep) or the full one (node-design-sheet).
-      manifestSlugs = new Set();
-      assets.forEach(function (a) {
-        if (!a.raw_url) return;
-        manifestSlugs.add(String(a._raw).toLowerCase());
-        manifestSlugs.add(String(a._stripped).toLowerCase());
-      });
-      manifestLoaded = true;
-      resolveDisplaySlugs();
-    });
+    }).catch(function (err) {
+      if (EMBEDDED_MANIFEST) { usingSnapshot = true; return EMBEDDED_MANIFEST; }
+      throw err;
+    }).then(processManifest);
   }
 
   function loadNeeds() {
@@ -996,6 +1016,8 @@
     return fetch(NEEDS_URL, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("needs " + res.status);
       return res.json();
+    }).catch(function () {
+      return EMBEDDED_NEEDS || null;   // snapshot fallback when the network is blocked
     }).then(function (data) {
       var arr = Array.isArray(data) ? data : (data && Array.isArray(data.needs) ? data.needs : null);
       needs = (arr && arr.length) ? arr : null;
@@ -1019,6 +1041,7 @@
     // Manifest and needs load independently; the needed-vs-done panel depends on
     // BOTH, so re-render it whenever either finishes.
     loadManifest().then(function () {
+      $("#snapshotNote").hidden = !usingSnapshot;
       buildFilters();
       render();
       renderCountLine();
