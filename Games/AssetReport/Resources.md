@@ -76,6 +76,7 @@ Standalone resource icons, drawn as their own pieces (derived from the top-badge
 icons on the node design sheet, whose look is approved). Placeholders for now. This
 set is **proposed**, pending ResourceType ratification.
 
+<!-- worklist: resources -->
 | Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
 | --- | --- | --- | --- | --- | --- |
 | `icon-resource-wood` | Wood | Stacked oiled logs / cut timber (Lumber Camp) | needed (placeholder) | `Icons/AssetReport/icon-resource-wood.png` | |

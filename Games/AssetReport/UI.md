@@ -103,6 +103,7 @@ always legible. The UI should make doing paperwork feel *satisfying and importan
 Placeholder. Reusable banner/plaque frame; the game renders the dynamic building
 name + level on top of it.
 
+<!-- worklist: ui -->
 | Stable ID | Display name | Description/role | Art status | Target filename | raw_url |
 | --- | --- | --- | --- | --- | --- |
 | `ui-building-nameplate` | Building Nameplate | One reusable frame/plaque the game overlays each building's NAME + LEVEL onto — one art piece, not one per building; bakes no specific text | needed (placeholder) | `Assets/AssetReport/ui-building-nameplate.png` | |

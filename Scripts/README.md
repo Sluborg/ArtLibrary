@@ -38,6 +38,7 @@ result = artlib.validation.validate_repository(".")
 | `payload.py` | Single + **batch** payload parse and base64 chunk reconstruction. |
 | `batch.py` | **Upload orchestration shared by single + batch.** `process_one_asset` (write→verify→optimize→embed→thumbnail/favicon) and `process_upload` (loop assets, rebuild index/report, validate, commit once, emit result). A single upload is a batch of one. |
 | `summary.py` | The upload result summary: builds the canonical dict, writes `Reports/latest-upload-result.json`, and writes the GitHub `$GITHUB_STEP_SUMMARY`. |
+| `worklist.py` | **Append-only, lossless worklist-row registration.** Locates a target table (anchor or heading), splices `rows` in after its last data row (byte-preserving elsewhere), dedupes on slug, validates column count; writes `Reports/latest-worklist-result.json` + step summary. |
 | `cli.py` | Shared entrypoint helpers (repo/branch discovery, logging). |
 
 ## CLI entrypoints
@@ -46,6 +47,7 @@ result = artlib.validation.validate_repository(".")
 | --- | --- | --- |
 | `upload_asset.py` | Upload asset | reads `ARTLIB_PAYLOAD` env (single-asset payload) |
 | `upload_assets_batch.py` | Upload assets (batch) | reads `ARTLIB_PAYLOAD` env (batch payload) |
+| `register_worklist.py` | Register worklist row | reads `ARTLIB_WORKLIST` / `ARTLIB_ROWS` / `ARTLIB_TABLE` / `ARTLIB_NOTE` / `ARTLIB_MESSAGE` env |
 | `verify_upload.py` | — (verification helper) | `--expected PATH` (repeatable), `--root` |
 | `build_index.py` | Asset Index | `--commit`, `--message`, `--root` |
 | `validate_assets.py` | Validate Assets | `--root` (exit 1 on errors) |

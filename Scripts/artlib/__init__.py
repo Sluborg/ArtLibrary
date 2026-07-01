@@ -24,6 +24,7 @@ Public surface (import as ``from artlib import ...``):
     payload      upload payload parsing + chunk reconstruction (single + batch)
     batch        upload orchestration shared by single + batch entrypoints
     summary      upload result summary, result file, and step summary
+    worklist     append-only, lossless worklist-row registration
     cli          shared entrypoint helpers
 """
 
@@ -45,6 +46,7 @@ from . import (  # noqa: F401
     summary,
     urls,
     validation,
+    worklist,
 )
 
 __all__ = [
@@ -65,6 +67,7 @@ __all__ = [
     "summary",
     "urls",
     "validation",
+    "worklist",
 ]
 
 __version__ = "1.0.0"

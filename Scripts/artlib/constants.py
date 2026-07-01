@@ -62,6 +62,11 @@ REPORT_MD = "Reports/latest-report.md"
 # ignored Reports/ dir so it is never treated as an asset.
 UPLOAD_RESULT_JSON = "Reports/latest-upload-result.json"
 
+# Machine-readable result of the most recent worklist registration run (rows
+# added/skipped). Overwritten each effective run so a caller can verify what a
+# dispatch did. Also lives under the ignored Reports/ dir.
+WORKLIST_RESULT_JSON = "Reports/latest-worklist-result.json"
+
 # Top-level derived files that must never be treated as assets.
 DERIVED_FILES = frozenset({INDEX_JSON, INDEX_MD})
 

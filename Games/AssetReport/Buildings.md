@@ -22,6 +22,7 @@ All 15 building nodes are currently **needed** — none are in the index yet.
 > time gates what actually gets made; rows here imply no commitment to include a
 > building in the game.
 
+<!-- worklist: buildings -->
 | Stable ID (slug) | Display name | Category | Top-badge icon | Gameplay role | Art status (needed/done) | Target filename | raw_url (blank until uploaded) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `home-keep` | Home Keep | `PLAYER_BASE` | Blue pennant (star) | Player base / starting capital | needed | `Illustrations/AssetReport/node-home-keep.png` | |

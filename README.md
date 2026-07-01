@@ -287,6 +287,7 @@ report and exits non-zero if anything is missing.
 | **Generate Reports** | `generate-reports.yml` | manual + weekly | write `Reports/latest-report.md` |
 | **Cleanup** | `cleanup.yml` | manual | remove orphan metadata/thumbnails, rebuild index + report |
 | **Repair Repository** | `repair-repository.yml` | manual | rebuild ALL derived state from assets, no asset loss |
+| **Register worklist row** | `register-worklist.yml` | manual + `repository_dispatch` | **append** a row to a worklist table (`Games/<Project>/*.md`) atomically + losslessly; dedupe on slug; never rewrites the doc |
 | **Release** | `release.yml` | manual + tag `v*` | package ZIP + index + metadata as Release Assets |
 
 System image tools (ImageMagick, optipng, jpegoptim, webp) are installed by a
@@ -378,6 +379,72 @@ in-process. A future MCP server or REST API would `import artlib` and call
 workflows. Designed-for-later hooks already exist: the reserved `embeddings`
 field (semantic / visual-similarity search), `collection` / `derived_from`
 (lineage and version history), and `kind` (arbitrary asset types).
+
+## Registering worklist rows
+
+Worklist docs (`Games/<Project>/Buildings.md`, `UI.md`, `Resources.md`, …) carry
+markdown tables that gain a row whenever a visual is registered. Lubot's GitHub
+action can only **replace a whole file**, and it refuses to reconstruct a doc by
+hand (too easy to silently drop content), so it cannot safely append a row. The
+**Register worklist row** workflow (`register-worklist.yml`) is the surgical
+alternative — it **splices** the new row in and changes nothing else.
+
+**It is append-only + dedupe. It never rewrites existing rows and never
+reconstructs or reformats the doc.** The row is inserted right after the target
+table's last data row; every other byte is preserved. A row whose stable slug
+(its first cell) already exists is **skipped and reported**, never duplicated —
+so re-dispatching the same row is a safe no-op.
+
+### Dispatch inputs
+
+Triggered by `workflow_dispatch` (Lubot or a human) and by `repository_dispatch`
+(event type `register-worklist`, fields under `client_payload`). Inputs:
+
+| Input | Required | Meaning |
+| --- | --- | --- |
+| `worklist` | yes | Target doc path, e.g. `Games/AssetReport/UI.md` |
+| `rows` | yes | One or more markdown rows to append — a **JSON array of strings** or **one row per line** — already formatted to the table's columns |
+| `table` | yes | How to locate the target table: an **anchor key** (e.g. `ui`) or a **heading substring** (e.g. `Building-nameplate worklist`) |
+| `note` | no | Optional trailing text to add **once** (skipped if already present) |
+| `message` | no | Commit message (default `Register worklist row(s)`) |
+| `branch` | no | Target branch (default `main`) |
+
+Each worklist table carries a machine-readable anchor comment
+(`<!-- worklist: ui -->`) placed above it so `table` can target it unambiguously
+even when a doc has several tables; the anchor is an invisible HTML comment and
+does not change the table's visible content. Heading-substring targeting works
+too, so `table` can be either.
+
+### Example `repository_dispatch` payload
+
+```jsonc
+{
+  "event_type": "register-worklist",
+  "client_payload": {
+    "worklist": "Games/AssetReport/UI.md",
+    "table": "ui",
+    "rows": [
+      "| `ui-quest-scroll` | Quest Scroll | Rolled writ used for the quest log | needed | `Assets/AssetReport/ui-quest-scroll.png` | |"
+    ],
+    "note": "",
+    "message": "Register ui-quest-scroll worklist row",
+    "branch": "main"
+  }
+}
+```
+
+The same fields are the `workflow_dispatch` inputs when dispatched manually.
+
+### Validation & result
+
+The run **fails cleanly with no commit** if the file is missing, the table
+can't be found, or a row's column count doesn't match the header — it never
+writes a malformed table. On success it commits + pushes the single spliced
+change and writes `Reports/latest-worklist-result.json` (rows added / skipped,
+branch, commit) so a caller can verify what happened; the same result is printed
+to stdout and the run's step summary. (Like the upload result, the committed
+copy's `commit_sha` is empty — a commit can't contain its own hash — and the
+authoritative SHA is emitted to stdout/step summary.)
 
 ## Local development
 

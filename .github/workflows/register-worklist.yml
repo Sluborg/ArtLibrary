@@ -1,0 +1,84 @@
+name: Register worklist row
+
+# Appends one or more markdown rows to a worklist table (Games/<Project>/*.md)
+# ATOMICALLY and LOSSLESSLY — the target doc is never reconstructed. All logic
+# lives in Scripts/artlib/worklist.py; this workflow only wires the dispatch
+# inputs to the entrypoint. Built for Lubot, whose GitHub action can only
+# "replace whole file" and so cannot safely append a row by hand.
+#
+# The row is spliced in right after the target table's last data row; every
+# other byte is preserved. Registration is append-only + dedupe: a row whose
+# stable slug (first cell) already exists is skipped, never rewritten. Malformed
+# input (wrong column count / table not found) fails cleanly with no commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      worklist:
+        description: "Target doc path, e.g. Games/AssetReport/UI.md"
+        required: true
+        type: string
+      rows:
+        description: "Markdown row(s) to append — a JSON array of strings or one row per line, already formatted to the table's columns"
+        required: true
+        type: string
+      table:
+        description: "How to locate the target table: an anchor key (e.g. ui) or a heading substring (e.g. Building-nameplate worklist)"
+        required: true
+        type: string
+      note:
+        description: "Optional trailing text to add once (skipped if already present)"
+        required: false
+        type: string
+        default: ""
+      message:
+        description: "Commit message"
+        required: false
+        type: string
+        default: "Register worklist row(s)"
+      branch:
+        description: "Target branch"
+        required: false
+        type: string
+        default: "main"
+  repository_dispatch:
+    types: [register-worklist]
+
+permissions:
+  contents: write
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine target branch
+        id: branch
+        shell: bash
+        env:
+          # inputs.* is populated for workflow_dispatch; for repository_dispatch
+          # it is empty, so fall back to the client_payload, then to main.
+          BRANCH: ${{ inputs.branch || github.event.client_payload.branch || 'main' }}
+        run: |
+          branch="$(python3 -c 'import os,re,sys; b=os.environ.get("BRANCH") or "main"; sys.exit("bad branch") if not re.match(r"^[A-Za-z0-9._/\-]+$", b) else print(b)')"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.branch.outputs.branch }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Register worklist row
+        env:
+          # Both trigger types map onto the same ARTLIB_* env the script reads.
+          ARTLIB_WORKLIST: ${{ inputs.worklist || github.event.client_payload.worklist }}
+          ARTLIB_ROWS: ${{ inputs.rows || github.event.client_payload.rows }}
+          ARTLIB_TABLE: ${{ inputs.table || github.event.client_payload.table }}
+          ARTLIB_NOTE: ${{ inputs.note || github.event.client_payload.note }}
+          ARTLIB_MESSAGE: ${{ inputs.message || github.event.client_payload.message }}
+          ARTLIB_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: python Scripts/register_worklist.py
