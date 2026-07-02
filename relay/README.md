@@ -1,10 +1,11 @@
-# Ingest relay (Cloudflare Worker) — Spike B fallback
+# Ingest relay (Cloudflare Worker) — the production ingest path
 
-Deploy this **only if** the direct-dispatch path fails — that is, if ChatGPT
-will not populate `openaiFileIdRefs` when it is nested inside a
-`repository_dispatch` `client_payload` (the "Spike B" verdict in
-[`docs/INGEST.md`](../docs/INGEST.md)). If the direct path works, nothing in
-this directory is used.
+**Status (2026-07-02): LIVE.** Spike B confirmed ChatGPT does not populate
+`openaiFileIdRefs` with a real `download_link` when the parameter is nested
+inside a `repository_dispatch` `client_payload` — only top-level. This Worker
+receives it top-level, and end-to-end ingest through it is confirmed working
+(`docs/INGEST.md`, Spike B verdict). Deployed via Cloudflare's GitHub-connected
+build against the repo-root [`wrangler.toml`](../wrangler.toml).
 
 ## What it does
 

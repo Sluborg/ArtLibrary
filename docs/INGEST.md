@@ -24,36 +24,63 @@ autonomously, with no manual download/upload and no per-image API cost.
 
 ## Architecture
 
-**Primary (no extra infrastructure): GitHub Actions is the relay.**
+**LIVE (confirmed 2026-07-02): Cloudflare Worker relay, not direct dispatch.**
+Spike B proved ChatGPT does not substitute a real `download_link` into a
+*nested* `openaiFileIdRefs` (see verdict below), so the Worker — which
+receives the refs at the top level, the only shape that works — is the
+production path, not a fallback.
 
 ```
-Lubot (Custom GPT)
-  │  POST /repos/Sluborg/ArtLibrary/dispatches      auth: fine-grained PAT
-  │  { event_type: "ingest-image",
-  │    client_payload: { openaiFileIdRefs: [...],   <- 5-minute download_link
-  │                      asset: {slug, title, ...},
-  │                      request_id, allow_overwrite, branch } }
+Lubot (Custom GPT, relay Action)
+  │  POST https://artlib-ingest.<account>.workers.dev/ingest
+  │  auth: X-Artlib-Key header
+  │  { openaiFileIdRefs: [...],   <- TOP-LEVEL: this is what gets substituted
+  │    slug, title, description, prompt, tags, collection,
+  │    request_id, allow_overwrite, branch }
+  ▼
+relay/worker.js  (Cloudflare Worker)
+  │  fetch the signed download_link immediately (seconds, not minutes)
+  │  validate magic bytes / size
+  │  PUT /repos/.../contents/IngestStaging/<request_id>.<ext>  (contents API)
+  │  POST /repos/.../dispatches  { event_type: "ingest-image",
+  │                                client_payload: { source_path, asset, ... } }
   ▼
 ingest-image.yml  (repository_dispatch, on main)
   │  Scripts/ingest_image.py -> artlib.ingest.run_ingest
-  │    download (fast retry, 4 attempts / ~17s span)
+  │    read staged bytes (no download, no expiry — already fetched by the Worker)
   │    validate (PNG/JPEG/WEBP, 30 MB cap, slug regex, optional sha256)
   │    dedupe   (embedded source_sha256 -> re-ingest of same bytes = noop)
   │    reuse artlib.batch.process_upload:
   │      optimize -> embed metadata (PNG iTXt) -> thumbnail ->
   │      rebuild asset-index.json / ASSET_INDEX.md / Metadata aggregate ->
-  │      validate -> ONE commit (GITHUB_TOKEN) -> push
+  │      validate -> ONE commit (GITHUB_TOKEN) -> push (deletes the staged blob)
   ▼
 Assets/AssetReport/<slug>.png  + index entry with a real raw_url
 Reports/latest-ingest-result.json  (committed on EVERY outcome)
 ```
 
-**Fallback (only if Spike B fails): Cloudflare Worker relay.** See
-[`../relay/README.md`](../relay/README.md). The Worker receives *top-level*
-`openaiFileIdRefs` (the shape OpenAI documents), fetches the link within
-seconds (killing the 5-minute risk), stages bytes via the contents API under
-`IngestStaging/`, and dispatches `ingest-image` with `source_path`. Same
-pipeline, one extra staging commit.
+Deploy details: Worker `artlib-ingest`, deployed via Cloudflare's
+GitHub-connected build reading the root [`wrangler.toml`](../wrangler.toml)
+(→ `relay/worker.js`); secrets `GITHUB_PAT` and `ARTLIB_SHARED_SECRET` set in
+the Worker's dashboard, never committed. Full deploy notes:
+[`../relay/README.md`](../relay/README.md).
+
+**Superseded (kept for reference / re-testable):** the direct-dispatch path
+below, where Lubot's GitHub Action itself carried `openaiFileIdRefs` nested
+inside `client_payload`. This is what Spike B tested and disproved — the
+`ingest-image` workflow still supports it (`image_url`/`openaiFileIdRefs`
+inputs both still work), but Lubot's Action no longer sends it this way.
+
+```
+Lubot (Custom GPT, direct GitHub Action)
+  │  POST /repos/Sluborg/ArtLibrary/dispatches      auth: fine-grained PAT
+  │  { event_type: "ingest-image",
+  │    client_payload: { openaiFileIdRefs: [...],   <- NOT substituted when nested
+  │                      asset: {slug, title, ...},
+  │                      request_id, allow_overwrite, branch } }
+  ▼
+ingest-image.yml  (same workflow, same pipeline as above)
+```
 
 ## Secrets and auth
 
@@ -186,16 +213,29 @@ entirely (it fetches within seconds of minting), even if Spike B succeeds.
 
 ## Spike B — will ChatGPT populate `openaiFileIdRefs` nested in `client_payload`?
 
-> **VERDICT (2026-07-02): NO — use the Worker relay.** Two live attempts
-> (request_ids `spike-b-1`, `spike-b-2`, [run 28603160619](https://github.com/Sluborg/ArtLibrary/actions/runs/28603160619))
+> **VERDICT (2026-07-02): NO. Direct-dispatch nesting does not work — the
+> Worker relay is the production path, confirmed working end to end.**
+>
+> Negative half: two live attempts (request_ids `spike-b-1`, `spike-b-2`,
+> [run 28603160619](https://github.com/Sluborg/ArtLibrary/actions/runs/28603160619))
 > reached the workflow with a nested ref present but **unsubstituted**: the
 > model wrote the raw file id (`file_0000...`) on the first attempt and the
 > sandbox path (`/mnt/data/...`) on the second — never a signed
 > `download_link`. The platform's link-substitution only engages for a
-> top-level `openaiFileIdRefs`, so the direct-dispatch variant cannot carry
-> images. The relay (`../relay/`) with `docs/lubot-action-relay.yaml` is the
-> production path; the protocol below is retained for re-testing if OpenAI
-> ever changes the behavior.
+> top-level `openaiFileIdRefs`, confirming the direct-dispatch variant cannot
+> carry images.
+>
+> Positive half: the Worker relay (`../relay/`, deployed via Cloudflare's
+> GitHub-connected build against the root `wrangler.toml`) with
+> `docs/lubot-action-relay.yaml` was then wired up and tested — request_id
+> `spike-b-3` returned `status: success`, `source: "staging"`, and a working
+> `raw_url` ([run 28613695557](https://github.com/Sluborg/ArtLibrary/actions/runs/28613695557),
+> asset committed in `23194f3`). **This is the standing architecture**: the
+> GitHub Action keeps `getFileContent`/`getAuthenticatedUser`/etc. for repo
+> reads and the worklist workflows; the separate relay Action
+> (`lubot-action-relay.yaml`, auth header `X-Artlib-Key`) is the only path
+> that carries images. The protocol below is retained for re-testing if
+> OpenAI ever changes the nested-substitution behavior.
 
 OpenAI documents `openaiFileIdRefs` only as a **top-level** request-body
 property. GitHub's dispatch API allows nothing at the top level except
@@ -282,13 +322,20 @@ localizes any failure in this pipeline.
 
 ## Post-merge checklist (operator)
 
-1. ☐ Spike A confirmation: run the `curl` above (or fire it from Lubot) with a
-   public image URL → asset lands on `main`, result file matches `request_id`.
-2. ☐ Spike B: protocol above → record the verdict here.
-3. ☐ If Spike B failed: deploy `relay/`, switch the Action schema, re-run the
-   probe through the Worker.
-4. ☐ Delete the test assets (`test-dispatch-proof`, `test-spike-b`) via a
-   normal commit, or re-ingest real art over them with `allow_overwrite`.
+1. ☑ Spike A confirmation: direct dispatch with a public image URL lands a
+   committed, indexed asset with a matching result file (proven pre-merge on
+   the feature branch, `spike-a-1`..`spike-a-5c`).
+2. ☑ Spike B: direct-dispatch nesting does **not** substitute real download
+   links (`spike-b-1`, `spike-b-2`) → Worker relay deployed and confirmed
+   working end to end (`spike-b-3`, `status: success`). Verdict recorded above.
+3. ☑ Worker relay is live: Cloudflare Worker `artlib-ingest`, GitHub-connected
+   build from this repo's root `wrangler.toml` → `relay/worker.js`, secrets
+   (`GITHUB_PAT`, `ARTLIB_SHARED_SECRET`) set in the Worker's dashboard.
+   Lubot's GitHub Action no longer carries `ingestImage`; the relay Action
+   (`lubot-action-relay.yaml`) does, auth header `X-Artlib-Key`.
+4. ☐ Delete the test assets (`test-spike-b`, and `test-dispatch-proof` if it
+   was created) via a normal commit, or re-ingest real art over them with
+   `allow_overwrite`.
 5. ☐ Optional: Settings → Pages → deploy `main /docs` to serve the viewer.
 
 ## Spike A evidence (feature branch, pre-merge)
