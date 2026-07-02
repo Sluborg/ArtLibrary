@@ -3,7 +3,10 @@
   "image_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png",
   "title": "Ingest smoke test",
   "description": "Temporary Spike A smoke-test asset; removed before merge.",
-  "tags": ["test", "ingest"],
-  "request_id": "spike-a-1",
+  "tags": [
+    "test",
+    "ingest"
+  ],
+  "request_id": "spike-a-2-noop",
   "branch": "claude/artlibrary-image-ingest-xq4up8"
 }
