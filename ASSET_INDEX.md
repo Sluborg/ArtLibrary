@@ -3,13 +3,13 @@
 > Generated automatically — do not edit by hand. Run the Asset Index workflow or `Scripts/build_index.py` to regenerate.
 
 - **Assets:** 9
-- **Total size:** 11.9 MB
+- **Total size:** 11.1 MB
 - **Duplicates:** 0
-- **Generated:** 2026-07-02T11:07:58.911700+00:00
+- **Generated:** 2026-07-02T11:18:07.292614+00:00
 
 | Asset | Kind | Dimensions | Size | SHA-256 | Links |
 | --- | --- | --- | --- | --- | --- |
-| `Assets/AssetReport/test-ingest-smoke.png` | asset | 1536×1024 | 2.7 MB | `68f83ffb4be9` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png) |
+| `Assets/AssetReport/test-ingest-smoke.png` | asset | 1536×1024 | 2.0 MB | `2c0c081d63bb` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png) |
 | `Generated/smoke-test-8x8.png` | test-image | 8×8 | 619 B | `33c81a7a689d` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/smoke-test-8x8.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/smoke-test-8x8.png) |
 | `Generated/testA.png` | test-image | 8×8 | 460 B | `e92810152cdd` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/testA.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/testA.png) |
 | `Generated/testB.png` | test-image | 8×8 | 460 B | `70fc4796180c` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/testB.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/testB.png) |

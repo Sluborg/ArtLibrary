@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-02T11:07:58.911700+00:00",
+  "generated_at": "2026-07-02T11:18:07.292614+00:00",
   "repository": "Sluborg/ArtLibrary",
   "branch": "claude/artlibrary-image-ingest-xq4up8",
   "asset_count": 9,
-  "total_bytes": 12428704,
+  "total_bytes": 11676442,
   "duplicate_count": 0,
   "duplicates": [],
   "embeddings": null,
@@ -16,7 +16,7 @@
       "description": "Temporary Spike A smoke-test asset; removed before merge.",
       "prompt": "",
       "generator": "lubot-dalle",
-      "created": "2026-07-02T11:07:57.848549+00:00",
+      "created": "2026-07-02T11:18:06.425622+00:00",
       "license": "internal-game-art",
       "tags": [
         "test",
@@ -26,13 +26,13 @@
       "collection": "AssetReport",
       "derived_from": null,
       "embeddings": null,
-      "source_sha256": "5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d",
+      "source_sha256": "f351d19f69386261dc00121c8c81a3798f13b304a59099b28c0a3a45c64d293b",
       "ingest_source": "image_url",
       "path": "Assets/AssetReport/test-ingest-smoke.png",
       "repository": "Sluborg/ArtLibrary",
       "branch": "claude/artlibrary-image-ingest-xq4up8",
-      "sha256": "68f83ffb4be9ed050f9bd59150578d8305eb21ca94834d744497c63e95c7ed18",
-      "bytes": 2873982,
+      "sha256": "2c0c081d63bb41fd61f3c7d97b0ac24f3188c9ecabc55414cdbe8573ce5a3b0c",
+      "bytes": 2121720,
       "dimensions": [
         1536,
         1024

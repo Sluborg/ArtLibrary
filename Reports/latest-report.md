@@ -1,11 +1,11 @@
 # Repository Report
 
-_Generated 2026-07-02T11:07:59.311900+00:00_
+_Generated 2026-07-02T11:18:07.633354+00:00_
 
 ## Summary
 
 - **Assets:** 9
-- **Storage used:** 11.9 MB
+- **Storage used:** 11.1 MB
 - **Missing metadata:** 0
 - **Duplicate groups:** 0
 
@@ -14,7 +14,7 @@ _Generated 2026-07-02T11:07:59.311900+00:00_
 | Extension | Count | Size |
 | --- | --- | --- |
 | `.jpg` | 1 | 1.5 MB |
-| `.png` | 8 | 10.4 MB |
+| `.png` | 8 | 9.7 MB |
 
 ## Largest assets
 
@@ -22,8 +22,8 @@ _Generated 2026-07-02T11:07:59.311900+00:00_
 | --- | --- |
 | `Illustrations/AssetReport/map-overworld-v2.png` | 2.9 MB |
 | `Illustrations/AssetReport/map-overworld.png` | 2.7 MB |
-| `Assets/AssetReport/test-ingest-smoke.png` | 2.7 MB |
 | `Illustrations/AssetReport/node-design-sheet.png` | 2.0 MB |
+| `Assets/AssetReport/test-ingest-smoke.png` | 2.0 MB |
 | `Wallpapers/AssetReport/title-screen.jpg` | 1.5 MB |
 | `Generated/smoke-test-8x8.png` | 619 B |
 | `Generated/testA.png` | 460 B |
@@ -34,7 +34,7 @@ _Generated 2026-07-02T11:07:59.311900+00:00_
 
 | Asset | Created |
 | --- | --- |
-| `Assets/AssetReport/test-ingest-smoke.png` | 2026-07-02T11:07:57.848549+00:00 |
+| `Assets/AssetReport/test-ingest-smoke.png` | 2026-07-02T11:18:06.425622+00:00 |
 | `Illustrations/AssetReport/map-overworld-v2.png` | 2026-06-30T21:03:17.045913+00:00 |
 | `Illustrations/AssetReport/map-overworld.png` | 2026-06-30T20:59:30.589809+00:00 |
 | `Illustrations/AssetReport/node-design-sheet.png` | 2026-06-30T20:53:36.733032+00:00 |
