@@ -186,6 +186,17 @@ entirely (it fetches within seconds of minting), even if Spike B succeeds.
 
 ## Spike B — will ChatGPT populate `openaiFileIdRefs` nested in `client_payload`?
 
+> **VERDICT (2026-07-02): NO — use the Worker relay.** Two live attempts
+> (request_ids `spike-b-1`, `spike-b-2`, [run 28603160619](https://github.com/Sluborg/ArtLibrary/actions/runs/28603160619))
+> reached the workflow with a nested ref present but **unsubstituted**: the
+> model wrote the raw file id (`file_0000...`) on the first attempt and the
+> sandbox path (`/mnt/data/...`) on the second — never a signed
+> `download_link`. The platform's link-substitution only engages for a
+> top-level `openaiFileIdRefs`, so the direct-dispatch variant cannot carry
+> images. The relay (`../relay/`) with `docs/lubot-action-relay.yaml` is the
+> production path; the protocol below is retained for re-testing if OpenAI
+> ever changes the behavior.
+
 OpenAI documents `openaiFileIdRefs` only as a **top-level** request-body
 property. GitHub's dispatch API allows nothing at the top level except
 `event_type`/`client_payload`. Whether ChatGPT populates the parameter one
