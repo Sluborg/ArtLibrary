@@ -1,20 +1,20 @@
 {
-  "status": "success",
-  "request_id": "spike-a-1",
+  "status": "noop",
+  "request_id": "spike-a-2-noop",
   "error_code": null,
-  "error": null,
+  "error": "identical bytes already ingested as Assets/AssetReport/test-ingest-smoke.png",
   "slug": "test-ingest-smoke",
   "path": "Assets/AssetReport/test-ingest-smoke.png",
   "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png",
   "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png",
-  "sha256": "68f83ffb4be9ed050f9bd59150578d8305eb21ca94834d744497c63e95c7ed18",
+  "sha256": "",
   "source_sha256": "5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d",
   "source": "image_url",
   "branch": "claude/artlibrary-image-ingest-xq4up8",
   "commit_sha": "",
   "attempts": 1,
-  "finished_at": "2026-07-02T11:07:59.743940+00:00",
-  "run_id": "28585394301",
-  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28585394301",
-  "started_at": "2026-07-02T11:07:54.628616+00:00"
+  "finished_at": "2026-07-02T11:12:08.170613+00:00",
+  "run_id": "28585624995",
+  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28585624995",
+  "started_at": "2026-07-02T11:12:07.908802+00:00"
 }
