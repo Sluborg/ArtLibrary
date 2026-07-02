@@ -200,7 +200,9 @@ def validate_metadata(meta: dict | None) -> tuple[list[str], list[str]]:
         if not meta.get(governance):
             warnings.append(f"empty {governance}")
 
-    known = set(AUTHORED_FIELDS) | {"embeddings"}
+    # source_sha256 / ingest_source are stamped by the ingest flow (artlib.ingest)
+    # to make re-ingests idempotent; they are expected, not "unknown".
+    known = set(AUTHORED_FIELDS) | {"embeddings", "source_sha256", "ingest_source"}
     for k in meta:
         if k not in known:
             warnings.append(f"unknown metadata key '{k}' (preserved)")

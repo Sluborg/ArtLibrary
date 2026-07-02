@@ -39,6 +39,7 @@ result = artlib.validation.validate_repository(".")
 | `batch.py` | **Upload orchestration shared by single + batch.** `process_one_asset` (write→verify→optimize→embed→thumbnail/favicon) and `process_upload` (loop assets, rebuild index/report, validate, commit once, emit result). A single upload is a batch of one. |
 | `summary.py` | The upload result summary: builds the canonical dict, writes `Reports/latest-upload-result.json`, and writes the GitHub `$GITHUB_STEP_SUMMARY`. |
 | `worklist.py` | **Append-only, lossless worklist-row registration.** Locates a target table (anchor or heading), splices `rows` in after its last data row (byte-preserving elsewhere), dedupes on slug, validates column count; writes `Reports/latest-worklist-result.json` + step summary. |
+| `ingest.py` | **Autonomous image ingest.** Downloads an image (an `openaiFileIdRefs` 5-minute link, a public URL, or a staged in-repo file), validates it, dedupes on the embedded `source_sha256`, then reuses `batch.process_upload` end to end; commits `Reports/latest-ingest-result.json` on every outcome so a fire-and-forget dispatcher can verify completion. |
 | `cli.py` | Shared entrypoint helpers (repo/branch discovery, logging). |
 
 ## CLI entrypoints
@@ -48,6 +49,7 @@ result = artlib.validation.validate_repository(".")
 | `upload_asset.py` | Upload asset | reads `ARTLIB_PAYLOAD` env (single-asset payload) |
 | `upload_assets_batch.py` | Upload assets (batch) | reads `ARTLIB_PAYLOAD` env (batch payload) |
 | `register_worklist.py` | Register worklist row | reads `ARTLIB_WORKLIST` / `ARTLIB_ROWS` / `ARTLIB_TABLE` / `ARTLIB_NOTE` / `ARTLIB_MESSAGE` env |
+| `ingest_image.py` | Ingest image | reads `ARTLIB_SLUG` / `ARTLIB_IMAGE_URL` / `ARTLIB_FILE_REFS` / `ARTLIB_SOURCE_PATH` + metadata env |
 | `verify_upload.py` | — (verification helper) | `--expected PATH` (repeatable), `--root` |
 | `build_index.py` | Asset Index | `--commit`, `--message`, `--root` |
 | `validate_assets.py` | Validate Assets | `--root` (exit 1 on errors) |

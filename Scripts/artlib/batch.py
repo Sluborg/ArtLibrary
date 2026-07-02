@@ -133,6 +133,7 @@ def process_upload(
     repository: str,
     root: str = ".",
     log=None,
+    on_summary=None,
 ) -> tuple[dict, bool]:
     """Run a whole upload (one or many assets) and emit its result summary.
 
@@ -147,6 +148,10 @@ def process_upload(
     Returns ``(summary, any_failed)``. ``any_failed`` is True if any asset failed,
     so the entrypoint can exit non-zero while still having committed the assets
     that did succeed.
+
+    ``on_summary``, when given, is called with the summary dict after the result
+    file is written but BEFORE staging — any extra file it writes (e.g. the
+    ingest result) lands in the same single commit as the upload.
     """
     uploaded: list = []
     failed: list = []
@@ -197,6 +202,8 @@ def process_upload(
     # Write the result file BEFORE committing so it lands in the same single
     # commit as the assets/index/report.
     summary.write_result_file(root, result)
+    if on_summary:
+        on_summary(result)
 
     gitutil.configure_bot()
     gitutil.stage_all()

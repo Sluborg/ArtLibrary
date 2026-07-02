@@ -67,6 +67,22 @@ UPLOAD_RESULT_JSON = "Reports/latest-upload-result.json"
 # dispatch did. Also lives under the ignored Reports/ dir.
 WORKLIST_RESULT_JSON = "Reports/latest-worklist-result.json"
 
+# Machine-readable result of the most recent image-ingest run. Committed on
+# EVERY outcome (success / noop / failure) because the dispatch API only ever
+# answers 204 — this file is the caller's sole confirmation channel. The
+# echoed request_id is how a poller tells a fresh result from a stale one.
+INGEST_RESULT_JSON = "Reports/latest-ingest-result.json"
+
+# Staging area used by the relay fallback: bytes are PUT here via the contents
+# API, then the ingest run moves them to their final asset path. Deliberately
+# NOT in ASSET_DIRS so discovery/indexing/validation never see staged blobs.
+INGEST_STAGING_DIR = "IngestStaging"
+
+# Ingest download safety limits.
+INGEST_MAX_BYTES = 30 * 1024 * 1024
+# Pillow format name -> file extension for formats DALL·E / ChatGPT can emit.
+INGEST_FORMATS = {"PNG": "png", "JPEG": "jpg", "WEBP": "webp"}
+
 # Top-level derived files that must never be treated as assets.
 DERIVED_FILES = frozenset({INDEX_JSON, INDEX_MD})
 
