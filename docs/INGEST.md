@@ -212,6 +212,63 @@ code cannot decide.
 The probe is cheap to repeat; `refs_empty` on 2–3 consecutive attempts is a
 reliable negative given the documented flakiness baseline.
 
+## Troubleshooting — debug layer by layer
+
+An ingest crosses five layers; each fails differently. Work top-down and stop
+at the first layer that misbehaves.
+
+**Layer 0 — what did Lubot actually send?** Lubot's own Pre-Flight shows the
+payload before the call — check `event_type: "ingest-image"` and the
+`client_payload` structure there. Caveat: `openaiFileIdRefs` is populated by
+ChatGPT *at call time*, not by the model, so the preview may legitimately show
+it empty or as a placeholder — an empty preview is NOT proof it wasn't sent.
+After a failure, ask Lubot: *"Show me the exact JSON body of the last
+ingestImage call and the HTTP status you received."*
+
+**Layer 1 — the dispatch call itself (Lubot reports a non-204).**
+- `401` — PAT invalid/expired. Recreate it, update the Action auth.
+- `403`/`404` — token can't see the repo: fine-grained PAT must have
+  repository access to `Sluborg/ArtLibrary` with **Contents: Read and write**.
+- `422` — payload shape: `client_payload` over 10 top-level properties, or
+  malformed JSON. Compare against the contract above.
+
+**Layer 2 — 204 received but no run appears.** Check the
+[Actions tab](https://github.com/Sluborg/ArtLibrary/actions) filtered to
+"Ingest image". No run means GitHub accepted but nothing listened:
+`event_type` misspelled (must be exactly `ingest-image`), or the workflow file
+is missing from `main` (`repository_dispatch` only triggers workflows on the
+default branch). Sanity-check the trigger independently of ChatGPT with the
+one-line `curl` from "The dispatch contract" — if the curl fires a run and
+Lubot doesn't, the problem is on the ChatGPT side by elimination.
+
+**Layer 3 — run appears but is red / result says failure.** Open the run: the
+"Ingest image" step log prints the download attempts, validation, and the
+final result JSON. Match `error_code` against the table above. The committed
+`Reports/latest-ingest-result.json` carries the same info plus `run_url`.
+Specifically for `refs_empty`: the file wasn't attached to the call — the
+known ChatGPT flakiness (retry) or, if it happens on every attempt, the
+Spike B negative verdict (deploy `relay/`).
+
+**Layer 4 — run green but Lubot reports "no match" / stale request_id.**
+The run finished after Lubot gave up (slow runner — just ask it to poll once
+more), or Lubot polled wrong. It must GET
+`/repos/Sluborg/ArtLibrary/contents/Reports/latest-ingest-result.json`
+(the contents API, base64-decode `content`) — polling the raw URL instead
+returns a cached copy for up to ~5 minutes. Verify by opening the
+[file on GitHub](https://github.com/Sluborg/ArtLibrary/blob/main/Reports/latest-ingest-result.json)
+and comparing `request_id` yourself.
+
+**Layer 5 — success reported but the asset looks wrong.** `raw_url` 404s:
+check the file exists under `Assets/AssetReport/` on `main` (the commit named
+`Ingest <slug> [request <id>]`). Viewer doesn't show it: hard-refresh
+(the manifest fetch is no-store, but the thumbnail may be CDN-cached).
+Unexpected `noop`: identical bytes were already ingested for that slug —
+that's the dedupe working; use a different image or `allow_overwrite`.
+
+When stuck, capture three things and hand them to a Claude session: the run
+URL, the decoded result JSON, and Lubot's reported request body. That triple
+localizes any failure in this pipeline.
+
 ## Post-merge checklist (operator)
 
 1. ☐ Spike A confirmation: run the `curl` above (or fire it from Lubot) with a
