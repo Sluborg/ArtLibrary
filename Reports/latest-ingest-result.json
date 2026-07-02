@@ -1,8 +1,8 @@
 {
   "status": "failure",
-  "request_id": "spike-b-1",
+  "request_id": "spike-b-2",
   "error_code": "bad_request",
-  "error": "image URL must be https: file_000000005e2c724385a9543cd59af062",
+  "error": "image URL must be https: /mnt/data/1000003228.jpg",
   "slug": "test-spike-b",
   "path": "",
   "raw_url": "",
@@ -13,8 +13,8 @@
   "branch": "main",
   "commit_sha": "",
   "attempts": 0,
-  "finished_at": "2026-07-02T15:40:56.872498+00:00",
-  "run_id": "28602632505",
-  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28602632505",
-  "started_at": "2026-07-02T15:40:56.872401+00:00"
+  "finished_at": "2026-07-02T15:49:11.987998+00:00",
+  "run_id": "28603160619",
+  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28603160619",
+  "started_at": "2026-07-02T15:49:11.987911+00:00"
 }
