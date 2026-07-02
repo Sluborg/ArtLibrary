@@ -8,8 +8,9 @@ venv/
 # Release bundles (built in CI, never committed)
 dist/
 
-# Local agent/session state
-.claude/
+# Local agent/session state (the shared settings file IS committed)
+.claude/*
+!.claude/settings.json
 
 # OS noise
 .DS_Store
