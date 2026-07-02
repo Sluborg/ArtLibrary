@@ -1,0 +1,10 @@
+# Cloudflare Worker config for the ArtLibrary ingest relay (Spike B fallback).
+# Deploy: npx wrangler deploy   (from this directory)
+#
+# Secrets are NOT set here — set them once with:
+#   npx wrangler secret put GITHUB_PAT            # fine-grained, Contents RW, Sluborg/ArtLibrary only
+#   npx wrangler secret put ARTLIB_SHARED_SECRET  # the GPT Action's X-Artlib-Key value
+
+name = "artlib-ingest"
+main = "worker.js"
+compatibility_date = "2026-01-01"

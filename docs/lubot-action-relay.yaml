@@ -1,0 +1,91 @@
+# Lubot Custom GPT Action schema — Variant 2 (fallback): Cloudflare Worker relay.
+#
+# Use ONLY if Spike B fails (ChatGPT won't populate openaiFileIdRefs nested in
+# client_payload — see docs/INGEST.md). Deploy relay/worker.js first, then set
+# the server URL below to the printed workers.dev URL. Auth: API Key, custom
+# header name "X-Artlib-Key", value = the ARTLIB_SHARED_SECRET Worker secret.
+#
+# Here openaiFileIdRefs is TOP-LEVEL in the request body — the exact shape
+# OpenAI documents for Action file-sending, which is known to work.
+openapi: 3.1.0
+info:
+  title: ArtLibrary ingest (relay)
+  description: >-
+    Sends an approved generated image to ArtLibrary via the ingest relay. The
+    relay answers synchronously; still confirm completion with getIngestResult.
+  version: 1.0.0
+servers:
+  - url: https://artlib-ingest.REPLACE-WITH-YOUR-ACCOUNT.workers.dev
+paths:
+  /ingest:
+    post:
+      operationId: ingestImage
+      summary: Ingest an approved image into ArtLibrary
+      description: >-
+        Attach exactly one generated image via openaiFileIdRefs. The relay
+        fetches it immediately, stages it in the repository, and fires the
+        ingest pipeline. A 200 response means accepted, not finished — poll
+        getIngestResult with the returned request_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [openaiFileIdRefs, slug]
+              properties:
+                openaiFileIdRefs:
+                  type: array
+                  description: The approved image file to send (exactly one).
+                  items:
+                    type: string
+                slug:
+                  type: string
+                  description: >-
+                    Stable ID from the worklist, lowercase kebab-case,
+                    e.g. ui-button-primary-stamp.
+                title:
+                  type: string
+                description:
+                  type: string
+                prompt:
+                  type: string
+                  description: The generation prompt, for provenance.
+                tags:
+                  type: array
+                  items:
+                    type: string
+                collection:
+                  type: string
+                  default: AssetReport
+                allow_overwrite:
+                  type: boolean
+                  default: false
+                request_id:
+                  type: string
+                  description: Fresh unique ID per attempt; echoed everywhere downstream.
+                branch:
+                  type: string
+                  default: main
+      responses:
+        "200":
+          description: "Accepted: {accepted, request_id, staged, poll}."
+        "422":
+          description: >-
+            Rejected before staging — error_code refs_empty (file not
+            attached; regenerate and resend), bad_request, not_an_image or
+            too_large.
+        "502":
+          description: The signed download link was already expired (link_expired).
+  /result:
+    get:
+      operationId: getIngestResult
+      summary: Fetch the result of the most recent ingest
+      description: >-
+        Returns the decoded latest-ingest-result.json (the relay proxies the
+        GitHub contents API). Match request_id against the one returned by
+        ingestImage; a mismatch means the run has not finished — wait and
+        retry — or never started.
+      responses:
+        "200":
+          description: The most recent ingest result JSON.
