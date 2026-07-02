@@ -20,12 +20,15 @@ Idempotency: the pipeline mutates bytes (optimization + metadata embed), so the
 committed file's hash never equals the download's. The download hash is instead
 stamped into the embedded metadata as ``source_sha256``; re-ingesting identical
 bytes for an existing slug is detected there and reported as a ``noop`` success.
+
+Note: like the upload entrypoints, the git steps run in the process CWD — the
+``root`` parameter must be the repository root the process is running in (the
+workflows always run at the checkout root).
 """
 
 from __future__ import annotations
 
 import base64
-import hashlib
 import io
 import json
 import os
@@ -35,14 +38,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
 from PIL import Image
 
-from . import batch, constants, gitutil, paths, payload, urls
+from . import batch, cli, constants, gitutil, hashing, metadata, paths, payload, summary, urls
 
-# Lowercase kebab, 1-64 chars, no leading/trailing/double reliance on regex:
-# matches the worklist stable-ID style (ui-button-primary-stamp, home-keep).
+# Lowercase kebab, 1-64 chars: matches the worklist stable-ID style
+# (ui-button-primary-stamp, home-keep).
 SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
 
 # A collection is exactly one directory segment under Assets/.
@@ -194,14 +196,21 @@ def validate_request(req: IngestRequest) -> None:
         raise IngestError(
             "bad_request", f"collection {req.collection!r} is not a valid directory name"
         )
-    paths.validate_branch(req.branch)
-    if req.source_path:
-        paths.validate_repo_path(req.source_path)
-        if not req.source_path.startswith(constants.INGEST_STAGING_DIR + "/"):
-            raise IngestError(
-                "bad_request",
-                f"source_path must live under {constants.INGEST_STAGING_DIR}/",
-            )
+    # paths.* raise ValueError; surface them as clean bad_request results
+    # rather than an uncaught traceback with no committed result file.
+    try:
+        paths.validate_branch(req.branch)
+        if req.source_path:
+            paths.validate_repo_path(req.source_path)
+    except ValueError as exc:
+        raise IngestError("bad_request", str(exc)) from exc
+    if req.source_path and not req.source_path.startswith(
+        constants.INGEST_STAGING_DIR + "/"
+    ):
+        raise IngestError(
+            "bad_request",
+            f"source_path must live under {constants.INGEST_STAGING_DIR}/",
+        )
     if not req.source:
         raise IngestError(
             "refs_empty",
@@ -299,9 +308,8 @@ def validate_image(data: bytes) -> str:
         )
     try:
         with Image.open(io.BytesIO(data)) as img:
-            img.verify()
-        with Image.open(io.BytesIO(data)) as img:
             detected = img.format or ""
+            img.verify()
     except Exception as exc:
         raise IngestError("not_an_image", f"payload is not a decodable image: {exc}")
     ext = constants.INGEST_FORMATS.get(detected)
@@ -316,10 +324,6 @@ def validate_image(data: bytes) -> str:
 
 # --------------------------------------------------------------------------
 # Result file + commits
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def build_result(req: IngestRequest, status: str, **extra) -> dict:
@@ -341,7 +345,7 @@ def build_result(req: IngestRequest, status: str, **extra) -> dict:
         "branch": req.branch,
         "commit_sha": "",
         "attempts": 0,
-        "finished_at": _utc_now_iso(),
+        "finished_at": metadata._utc_now_iso(),
         "run_id": run_id,
         "run_url": f"{server}/{repository}/actions/runs/{run_id}"
         if run_id and repository
@@ -352,25 +356,46 @@ def build_result(req: IngestRequest, status: str, **extra) -> dict:
 
 
 def write_result_file(result: dict, root: str = ".") -> str:
-    os.makedirs(os.path.join(root, constants.REPORTS_DIR), exist_ok=True)
-    path = os.path.join(root, constants.INGEST_RESULT_JSON)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-    return constants.INGEST_RESULT_JSON
+    return summary.write_result_file(root, result, constants.INGEST_RESULT_JSON)
 
 
-def _commit_result_only(result: dict, message: str, root: str = ".", log=None) -> None:
+def _remove_staged(req: IngestRequest, root: str) -> list:
+    """Delete the relay-staged blob (if any); return the paths to stage.
+
+    Every terminal outcome must clean the staging area, or noop/failed relay
+    ingests would leave a committed blob under IngestStaging/ forever.
+    """
+    if not req.source_path:
+        return []
+    full = os.path.join(root, req.source_path)
+    if os.path.exists(full):
+        os.remove(full)
+        return [req.source_path]
+    return []
+
+
+def _commit_result_only(
+    result: dict, message: str, root: str = ".", log=None, extra_paths=()
+) -> None:
     """Commit ONLY the ingest result file (noop / pre-pipeline failure paths).
 
     Never ``stage_all`` here — a failed ingest must not sweep unrelated
-    working-tree state into a commit. Push errors are swallowed: the result
-    file is best-effort observability, the run log is the fallback channel.
+    working-tree state into a commit. Push errors are logged, not raised: the
+    result file is best-effort observability, the run log is the fallback
+    channel (and the entrypoint's exit code already reflects the outcome).
     """
     try:
         write_result_file(result, root)
         gitutil.configure_bot()
         gitutil.stage([constants.INGEST_RESULT_JSON])
+        for extra in extra_paths:
+            # Tolerate an extra path git never tracked (e.g. a staged blob in
+            # a local run) — its deletion must not sink the result commit.
+            try:
+                gitutil.stage([extra])
+            except Exception:
+                if log:
+                    log.warning("Could not stage %s (continuing)", extra)
         if gitutil.commit_if_changed(message, skip_ci=True):
             gitutil.push(result["branch"])
     except Exception as exc:  # pragma: no cover - depends on git/network state
@@ -388,8 +413,6 @@ def _existing_same_slug(req: IngestRequest, ext: str, root: str) -> tuple[str, s
     Checks the exact target first, then sibling extensions, so a slug cannot
     silently exist twice with different formats.
     """
-    from . import metadata  # local import to avoid cycles at module load
-
     candidates = [f"Assets/{req.collection}/{req.slug}.{ext}"] + [
         f"Assets/{req.collection}/{req.slug}.{other}"
         for other in sorted(set(constants.INGEST_FORMATS.values()) - {ext})
@@ -400,6 +423,21 @@ def _existing_same_slug(req: IngestRequest, ext: str, root: str) -> tuple[str, s
             meta = metadata.read_asset_metadata(full) or {}
             return rel, str(meta.get("source_sha256") or "")
     return "", ""
+
+
+def _remove_asset_family(rel: str, root: str) -> None:
+    """Remove an asset plus its derived siblings (thumbnail/favicons/sidecar).
+
+    Used on a cross-format overwrite: deleting only the primary file would
+    orphan its thumbnail/sidecar, which validation then flags as errors on
+    every subsequent run.
+    """
+    family = [rel, paths.thumbnail_path(rel), paths.sidecar_path(rel)]
+    family += paths.favicon_paths(rel)
+    for f in family:
+        full = os.path.join(root, f)
+        if os.path.exists(full):
+            os.remove(full)
 
 
 def load_source_bytes(req: IngestRequest, root: str, log=None) -> tuple[bytes, int]:
@@ -418,31 +456,39 @@ def load_source_bytes(req: IngestRequest, root: str, log=None) -> tuple[bytes, i
 
 def run_ingest(environ, log=None, root: str = ".") -> tuple[dict, int]:
     """Execute one ingest end to end. Returns ``(result, exit_code)``."""
-    started_at = _utc_now_iso()
+    started_at = metadata._utc_now_iso()
     req = request_from_env(environ)
-    repository = environ.get("GITHUB_REPOSITORY", "unknown/repo")
+    repository = environ.get("GITHUB_REPOSITORY") or cli._git_remote_slug()
 
-    try:
-        validate_request(req)
-    except IngestError as exc:
-        # Branch may be unvalidated here; only commit the result when it is safe.
+    def fail(exc: Exception) -> tuple[dict, int]:
+        code = exc.code if isinstance(exc, IngestError) else "internal_error"
+        if log and code == "internal_error":
+            log.exception("Unexpected ingest failure")
         result = build_result(
-            req, "failure", error_code=exc.code, error=str(exc), started_at=started_at
+            req, "failure", error_code=code, error=str(exc), started_at=started_at
         )
+        # The branch is caller-supplied and may itself be the invalid input:
+        # only commit the result when it names a safe, pushable branch.
         try:
             paths.validate_branch(req.branch)
-        except Exception:
-            write_result_file(result, root)  # observable via run log/artifact only
+        except ValueError:
+            write_result_file(result, root)  # observable via the run log only
         else:
             _commit_result_only(
-                result, f"Ingest {req.slug or 'request'} failed: {exc.code}", root, log
+                result,
+                f"Ingest {req.slug or 'request'} failed: {code}",
+                root,
+                log,
+                extra_paths=_remove_staged(req, root),
             )
         return result, 1
 
     try:
+        validate_request(req)
+
         data, attempts = load_source_bytes(req, root, log)
         ext = validate_image(data)
-        src_sha = hashlib.sha256(data).hexdigest()
+        src_sha = hashing.sha256_bytes(data)
         if req.sha256 and req.sha256 != src_sha:
             raise IngestError(
                 "sha256_mismatch",
@@ -467,7 +513,11 @@ def run_ingest(environ, log=None, root: str = ".") -> tuple[dict, int]:
                 error=f"identical bytes already ingested as {existing_rel}",
             )
             _commit_result_only(
-                result, f"Ingest {req.slug}: no-op (already present)", root, log
+                result,
+                f"Ingest {req.slug}: no-op (already present)",
+                root,
+                log,
+                extra_paths=_remove_staged(req, root),
             )
             return result, 0
         if existing_rel and not req.allow_overwrite:
@@ -477,84 +527,82 @@ def run_ingest(environ, log=None, root: str = ".") -> tuple[dict, int]:
                 "set allow_overwrite to replace it",
             )
         if existing_rel and existing_rel != target:
-            # Same slug, different format: replace, don't accumulate.
-            os.remove(os.path.join(root, existing_rel))
-    except IngestError as exc:
-        result = build_result(
-            req, "failure", error_code=exc.code, error=str(exc), started_at=started_at
-        )
-        _commit_result_only(result, f"Ingest {req.slug} failed: {exc.code}", root, log)
-        return result, 1
+            # Same slug, different format: replace the whole family (asset +
+            # thumbnail/favicons/sidecar), don't accumulate orphans.
+            _remove_asset_family(existing_rel, root)
 
-    if req.source_path:
         # The final commit both adds the asset and removes the staged blob.
-        os.remove(os.path.join(root, req.source_path))
+        _remove_staged(req, root)
 
-    user_meta = {
-        "title": req.title or req.slug,
-        "description": req.description,
-        "prompt": req.prompt,
-        "generator": DEFAULT_GENERATOR,
-        "license": DEFAULT_LICENSE,
-        "tags": req.tags,
-        "collection": req.collection,
-        "source_sha256": src_sha,
-        "ingest_source": req.source,
-    }
-    if req.kind:
-        user_meta["kind"] = req.kind
+        user_meta = {
+            "title": req.title or req.slug,
+            "description": req.description,
+            "prompt": req.prompt,
+            "generator": DEFAULT_GENERATOR,
+            "license": DEFAULT_LICENSE,
+            "tags": req.tags,
+            "collection": req.collection,
+            "source_sha256": src_sha,
+            "ingest_source": req.source,
+        }
+        if req.kind:
+            user_meta["kind"] = req.kind
 
-    p = payload.Payload(
-        branch=req.branch,
-        path=target,
-        commit_message=f"Ingest {req.slug} [request {req.request_id}]",
-        chunks=[base64.b64encode(data).decode("ascii")],
-        metadata=user_meta,
-        options={"thumbnail": True, "allow_overwrite": bool(existing_rel)},
-    )
+        p = payload.Payload(
+            branch=req.branch,
+            path=target,
+            commit_message=f"Ingest {req.slug} [request {req.request_id}]",
+            chunks=[base64.b64encode(data).decode("ascii")],
+            metadata=user_meta,
+            options={"thumbnail": True, "allow_overwrite": bool(existing_rel)},
+        )
 
-    outcome = {}
+        outcome = {}
 
-    def on_summary(upload_summary: dict) -> None:
-        # Runs inside process_upload after its result file is written and
-        # before staging — so this file joins the same single commit.
-        if upload_summary["failed"]:
-            outcome.update(
-                build_result(
-                    req,
-                    "failure",
-                    error_code="pipeline_failed",
-                    error=upload_summary["failed"][0].get("error", "upload failed"),
-                    source_sha256=src_sha,
-                    attempts=attempts,
-                    started_at=started_at,
+        def on_summary(upload_summary: dict) -> None:
+            # Runs inside process_upload after the derived files are written
+            # and before staging — so this file joins the same single commit.
+            if upload_summary["failed"]:
+                outcome.update(
+                    build_result(
+                        req,
+                        "failure",
+                        error_code="pipeline_failed",
+                        error=upload_summary["failed"][0].get("error", "upload failed"),
+                        source_sha256=src_sha,
+                        attempts=attempts,
+                        started_at=started_at,
+                    )
                 )
-            )
-        else:
-            record = upload_summary["uploaded"][0]
-            outcome.update(
-                build_result(
-                    req,
-                    "success",
-                    path=record["path"],
-                    raw_url=record["raw_url"],
-                    github_url=record["github_url"],
-                    sha256=record["sha256"],
-                    source_sha256=src_sha,
-                    attempts=attempts,
-                    started_at=started_at,
+            else:
+                record = upload_summary["uploaded"][0]
+                outcome.update(
+                    build_result(
+                        req,
+                        "success",
+                        path=record["path"],
+                        raw_url=record["raw_url"],
+                        github_url=record["github_url"],
+                        sha256=record["sha256"],
+                        source_sha256=src_sha,
+                        attempts=attempts,
+                        started_at=started_at,
+                    )
                 )
-            )
-        write_result_file(outcome, root)
+            write_result_file(outcome, root)
 
-    upload_result, any_failed = batch.process_upload(
-        [p],
-        req.branch,
-        p.commit_message,
-        repository,
-        root=root,
-        log=log,
-        on_summary=on_summary,
-    )
+        upload_result, any_failed = batch.process_upload(
+            [p],
+            req.branch,
+            p.commit_message,
+            repository,
+            root=root,
+            log=log,
+            on_summary=on_summary,
+            result_file=False,  # keep the upload flow's contract file untouched
+        )
+    except Exception as exc:
+        return fail(exc)
+
     outcome["commit_sha"] = upload_result.get("commit_sha", "")
     return outcome, 1 if any_failed else 0

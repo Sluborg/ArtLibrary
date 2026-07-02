@@ -44,8 +44,11 @@ ASSET_DIRS = (
 )
 
 # Folders/files that are never assets (infrastructure & derived output).
+# IngestStaging holds relay-staged blobs in transit (see INGEST_STAGING_DIR);
+# ignoring it keeps the orphan-sidecar/thumbnail scanners and cleanup away
+# from files that exist only between a relay PUT and the ingest run.
 IGNORED_DIRS = frozenset(
-    {".git", ".github", "Scripts", "Reports", "Metadata", "node_modules"}
+    {".git", ".github", "Scripts", "Reports", "Metadata", "node_modules", "IngestStaging"}
 )
 
 # --- Generated (derived) artifacts -----------------------------------------

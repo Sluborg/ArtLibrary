@@ -535,7 +535,7 @@
     countUp(nIndexed, assets.length, !countAnimated);
     countAnimated = true;
 
-    if (needs && needs.length && activeCollection === COLLECTION) {
+    if (needs && needs.length && needsInScope()) {
       var missing = needs.filter(function (n) { return !isDone(n); }).length;
       line.appendChild(sep());
       var nNeed = el("span", "num");
@@ -556,6 +556,13 @@
   function srAnnounce(msg) { var s = $("#sr-status"); if (s) s.textContent = msg; }
 
   // ---- needed vs done ----
+  // The needs list is AssetReport-specific: it applies when that collection is
+  // in view — directly or inside "All" (which contains it) — but not when the
+  // user scoped to a different collection.
+  function needsInScope() {
+    return activeCollection === COLLECTION || activeCollection === "";
+  }
+
   function isDone(need) {
     if (!manifestSlugs) return false;
     return manifestSlugs.has(String(need.slug || "").toLowerCase());
@@ -586,7 +593,7 @@
     // Only meaningful once BOTH the needs list and the manifest have loaded —
     // otherwise every item would falsely read MISSING against a null slug set.
     // The needs list is AssetReport-specific, so hide it for other collections.
-    if (!needs || !needs.length || !manifestLoaded || activeCollection !== COLLECTION) { section.hidden = true; return; }
+    if (!needs || !needs.length || !manifestLoaded || !needsInScope()) { section.hidden = true; return; }
     section.hidden = false;
 
     var doneCount = needs.filter(isDone).length;
@@ -1073,7 +1080,7 @@
   function parseWorklistNeeds(md, docKind) {
     var out = [];
     var lines = String(md || "").split("\n");
-    var inTable = false, descCol = -1;
+    var inTable = false, descCol = -1, statusCol = -1;
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (!inTable) {
@@ -1082,9 +1089,10 @@
           while (++i < lines.length && lines[i].trim().indexOf("|") !== 0) {}
           if (i >= lines.length) break;
           var headers = splitRow(lines[i]);
-          descCol = -1;
+          descCol = -1; statusCol = -1;
           headers.forEach(function (h, idx) {
             if (descCol === -1 && /description|role/i.test(h)) descCol = idx;
+            if (statusCol === -1 && /status/i.test(h)) statusCol = idx;
           });
           if (descCol === -1) descCol = 1; // fall back to the display name
           i++; // skip the |---| separator row
@@ -1096,6 +1104,8 @@
       if (!cells) { inTable = false; continue; }
       var slug = cells[0].replace(/`/g, "").trim().toLowerCase();
       if (!slug || slug.indexOf("---") === 0) continue;
+      // A row the worklist itself marks done is no longer a need.
+      if (statusCol !== -1 && /^done/i.test((cells[statusCol] || "").trim())) continue;
       out.push({ slug: slug, kind: docKind, description: (cells[descCol] || "").trim() });
     }
     function splitRow(line) {

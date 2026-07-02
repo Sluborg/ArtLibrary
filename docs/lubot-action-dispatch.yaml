@@ -68,9 +68,17 @@ paths:
                           type: array
                           items:
                             type: string
+                        kind:
+                          type: string
+                          description: Optional asset kind; defaults from the target folder.
                         collection:
                           type: string
                           default: AssetReport
+                        sha256:
+                          type: string
+                          description: >-
+                            Optional SHA-256 of the original image bytes for an
+                            integrity check (sha256_mismatch on failure).
                     allow_overwrite:
                       type: boolean
                       default: false

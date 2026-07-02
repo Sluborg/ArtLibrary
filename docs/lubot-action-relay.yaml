@@ -55,9 +55,15 @@ paths:
                   type: array
                   items:
                     type: string
+                kind:
+                  type: string
+                  description: Optional asset kind; defaults from the target folder.
                 collection:
                   type: string
                   default: AssetReport
+                sha256:
+                  type: string
+                  description: Optional SHA-256 of the original image bytes.
                 allow_overwrite:
                   type: boolean
                   default: false
@@ -86,6 +92,14 @@ paths:
         GitHub contents API). Match request_id against the one returned by
         ingestImage; a mismatch means the run has not finished — wait and
         retry — or never started.
+      parameters:
+        - name: ref
+          in: query
+          required: false
+          schema:
+            type: string
+            default: main
+          description: Branch to read the result from (matches the ingest's branch).
       responses:
         "200":
           description: The most recent ingest result JSON.

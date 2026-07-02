@@ -11,7 +11,12 @@
  * repo via the contents API, and dispatches the ingest-image workflow with a
  * `source_path` pointing at the staged blob. The workflow then runs the full
  * optimize/metadata/thumbnail/index pipeline and deletes the staged file in
- * the same commit that adds the asset.
+ * the same commit that adds the asset (or in the result-only commit when the
+ * ingest ends in noop/failure).
+ *
+ * Validation mirrors the workflow side (slug/collection rules from
+ * Scripts/artlib/ingest.py) so a bad request is rejected BEFORE a blob is
+ * staged — otherwise every downstream rejection would first commit a blob.
  *
  * Secrets (wrangler secret put <NAME>):
  *   GITHUB_PAT           fine-grained PAT, Contents: Read and write,
@@ -22,6 +27,11 @@
 const REPO = "Sluborg/ArtLibrary";
 const STAGING_DIR = "IngestStaging";
 const MAX_BYTES = 30 * 1024 * 1024;
+
+// Mirror Scripts/artlib/ingest.py: SLUG_RE / COLLECTION_RE / branch charset.
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
+const COLLECTION_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const BRANCH_RE = /^[A-Za-z0-9._/-]+$/;
 
 // Magic bytes for the formats the ingest pipeline accepts.
 const SIGNATURES = [
@@ -53,12 +63,13 @@ function detectExt(buf) {
 
 function base64(buf) {
   const view = new Uint8Array(buf);
-  let binary = "";
+  if (typeof view.toBase64 === "function") return view.toBase64(); // native, fast
+  const parts = [];
   const chunk = 0x8000;
   for (let i = 0; i < view.length; i += chunk) {
-    binary += String.fromCharCode(...view.subarray(i, i + chunk));
+    parts.push(String.fromCharCode(...view.subarray(i, i + chunk)));
   }
-  return btoa(binary);
+  return btoa(parts.join(""));
 }
 
 async function github(env, method, path, body) {
@@ -72,123 +83,166 @@ async function github(env, method, path, body) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!resp.ok && resp.status !== 204) {
+  if (!resp.ok) {
     const text = await resp.text();
     throw new Error(`GitHub ${method} ${path} -> ${resp.status}: ${text.slice(0, 300)}`);
   }
   return resp;
 }
 
+// The contents API requires the current blob sha to overwrite an existing
+// path (else 422) — a retry that reuses a request_id would otherwise 500.
+async function stagingSha(env, path, branch) {
+  const resp = await fetch(
+    `https://api.github.com/repos/${REPO}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+    {
+      headers: {
+        authorization: `Bearer ${env.GITHUB_PAT}`,
+        accept: "application/vnd.github+json",
+        "user-agent": "artlibrary-ingest-relay",
+      },
+    }
+  );
+  if (!resp.ok) return undefined;
+  const data = await resp.json();
+  return data.sha;
+}
+
+async function handleIngest(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json(400, { error_code: "bad_request", error: "request body must be JSON" });
+  }
+
+  // Tolerate a bare string/object where an array is documented.
+  let refs = body.openaiFileIdRefs;
+  if (refs && !Array.isArray(refs)) refs = [refs];
+  const first = (refs || [])[0];
+  const link = typeof first === "string" ? first : first && first.download_link;
+  if (!link) {
+    // The documented ChatGPT flakiness: the model called the action without
+    // attaching the file. Tell it precisely, so it regenerates and resends.
+    return json(422, {
+      error_code: "refs_empty",
+      error:
+        "openaiFileIdRefs was empty — the image was not attached; " +
+        "regenerate the image and call the action again",
+    });
+  }
+
+  // Reject bad requests BEFORE staging a blob (mirrors the workflow's rules).
+  const slug = String(body.slug || "").toLowerCase();
+  const collection = String(body.collection || "AssetReport");
+  const branch = String(body.branch || "main");
+  if (!SLUG_RE.test(slug)) {
+    return json(422, {
+      error_code: "bad_slug",
+      error: `slug ${JSON.stringify(body.slug || "")} must be lowercase kebab-case (a-z, 0-9, single hyphens, 1-64 chars)`,
+    });
+  }
+  if (!COLLECTION_RE.test(collection) || !BRANCH_RE.test(branch)) {
+    return json(422, { error_code: "bad_request", error: "invalid collection or branch" });
+  }
+  // request_id becomes a repo path segment — keep it to the safe charset.
+  let requestId = String(body.request_id || `${Date.now()}-${slug}`)
+    .replace(/[^A-Za-z0-9._-]/g, "-")
+    .slice(0, 64);
+  if (!requestId.replace(/[.-]/g, "")) requestId = `${Date.now()}-${slug}`.slice(0, 64);
+
+  // Fetch inside the 5-minute window — we are within seconds of minting.
+  const imgResp = await fetch(link);
+  if (!imgResp.ok) {
+    return json(502, {
+      error_code: "link_expired",
+      error: `download_link fetch failed with HTTP ${imgResp.status}`,
+    });
+  }
+  const buf = await imgResp.arrayBuffer();
+  if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) {
+    return json(422, {
+      error_code: buf.byteLength ? "too_large" : "download_failed",
+      error: `image is ${buf.byteLength} bytes (limit ${MAX_BYTES})`,
+    });
+  }
+  const ext = detectExt(buf);
+  if (!ext) {
+    return json(422, {
+      error_code: "not_an_image",
+      error: "payload does not look like PNG/JPEG/WEBP",
+    });
+  }
+
+  const stagedPath = `${STAGING_DIR}/${requestId}.${ext}`;
+
+  // Stage the bytes (contents API handles up to ~100MB; DALL·E images are
+  // a few MB). IngestStaging/ is ignored by the indexer by design.
+  await github(env, "PUT", `/repos/${REPO}/contents/${stagedPath}`, {
+    message: `Stage ingest ${requestId} [skip ci]`,
+    content: base64(buf),
+    branch,
+    sha: await stagingSha(env, stagedPath, branch), // present only on re-stage
+  });
+
+  // Hand off to the ingest workflow: it moves the blob to its final asset
+  // path, runs the full pipeline, and deletes the staged file.
+  await github(env, "POST", `/repos/${REPO}/dispatches`, {
+    event_type: "ingest-image",
+    client_payload: {
+      source_path: stagedPath,
+      asset: {
+        slug,
+        title: body.title || "",
+        description: body.description || "",
+        prompt: body.prompt || "",
+        tags: body.tags || [],
+        kind: body.kind || "",
+        collection,
+        sha256: body.sha256 || "",
+      },
+      allow_overwrite: !!body.allow_overwrite,
+      request_id: requestId,
+      branch,
+    },
+  });
+
+  // A real synchronous ack — something the pure-dispatch path can never
+  // give. The GPT then polls GET /result and matches request_id.
+  return json(200, { accepted: true, request_id: requestId, staged: stagedPath });
+}
+
+async function handleResult(request, env) {
+  const ref = new URL(request.url).searchParams.get("ref") || "main";
+  if (!BRANCH_RE.test(ref)) {
+    return json(422, { error_code: "bad_request", error: "invalid ref" });
+  }
+  const resp = await github(
+    env,
+    "GET",
+    `/repos/${REPO}/contents/Reports/latest-ingest-result.json?ref=${encodeURIComponent(ref)}`
+  );
+  const data = await resp.json();
+  return json(200, JSON.parse(atob(data.content.replace(/\n/g, ""))));
+}
+
 export default {
   async fetch(request, env) {
-    const path = new URL(request.url).pathname;
     if (request.headers.get("x-artlib-key") !== env.ARTLIB_SHARED_SECRET) {
       return json(401, { error: "bad or missing X-Artlib-Key" });
     }
-
-    // Result polling proxy: keeps the GPT on ONE Action server + one auth.
-    if (request.method === "GET" && path === "/result") {
-      const resp = await github(
-        env,
-        "GET",
-        `/repos/${REPO}/contents/Reports/latest-ingest-result.json`
-      );
-      const data = await resp.json();
-      return json(200, JSON.parse(atob(data.content.replace(/\n/g, ""))));
-    }
-
-    if (request.method !== "POST" || path !== "/ingest") {
-      return json(404, { error: "POST /ingest or GET /result only" });
-    }
-
-    let body;
+    const path = new URL(request.url).pathname;
     try {
-      body = await request.json();
-    } catch {
-      return json(400, { error: "request body must be JSON" });
+      if (request.method === "GET" && path === "/result") {
+        return await handleResult(request, env);
+      }
+      if (request.method === "POST" && path === "/ingest") {
+        return await handleIngest(request, env);
+      }
+    } catch (err) {
+      // Structured error instead of an opaque 500 — the GPT reads this.
+      return json(502, { error_code: "relay_failed", error: String(err).slice(0, 400) });
     }
-
-    const refs = body.openaiFileIdRefs || [];
-    const first = refs[0];
-    const link =
-      typeof first === "string" ? first : first && first.download_link;
-    if (!link) {
-      // The documented ChatGPT flakiness: the model called the action without
-      // attaching the file. Tell it precisely, so it regenerates and resends.
-      return json(422, {
-        error_code: "refs_empty",
-        error:
-          "openaiFileIdRefs was empty — the image was not attached; " +
-          "regenerate the image and call the action again",
-      });
-    }
-    if (!body.slug) {
-      return json(422, { error_code: "bad_request", error: "slug is required" });
-    }
-
-    // Fetch inside the 5-minute window — we are within seconds of minting.
-    const imgResp = await fetch(link);
-    if (!imgResp.ok) {
-      return json(502, {
-        error_code: "link_expired",
-        error: `download_link fetch failed with HTTP ${imgResp.status}`,
-      });
-    }
-    const buf = await imgResp.arrayBuffer();
-    if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) {
-      return json(422, {
-        error_code: buf.byteLength ? "too_large" : "download_failed",
-        error: `image is ${buf.byteLength} bytes (limit ${MAX_BYTES})`,
-      });
-    }
-    const ext = detectExt(buf);
-    if (!ext) {
-      return json(422, {
-        error_code: "not_an_image",
-        error: "payload does not look like PNG/JPEG/WEBP",
-      });
-    }
-
-    const requestId =
-      body.request_id || `${Date.now()}-${body.slug}`.slice(0, 64);
-    const stagedPath = `${STAGING_DIR}/${requestId}.${ext}`;
-
-    // Stage the bytes (contents API handles up to ~100MB; DALL·E images are
-    // a few MB). IngestStaging/ is ignored by the indexer by design.
-    await github(env, "PUT", `/repos/${REPO}/contents/${stagedPath}`, {
-      message: `Stage ingest ${requestId} [skip ci]`,
-      content: base64(buf),
-      branch: body.branch || "main",
-    });
-
-    // Hand off to the ingest workflow: it moves the blob to its final asset
-    // path, runs the full pipeline, and deletes the staged file.
-    await github(env, "POST", `/repos/${REPO}/dispatches`, {
-      event_type: "ingest-image",
-      client_payload: {
-        source_path: stagedPath,
-        asset: {
-          slug: body.slug,
-          title: body.title || "",
-          description: body.description || "",
-          prompt: body.prompt || "",
-          tags: body.tags || [],
-          kind: body.kind || "",
-          collection: body.collection || "AssetReport",
-        },
-        allow_overwrite: !!body.allow_overwrite,
-        request_id: requestId,
-        branch: body.branch || "main",
-      },
-    });
-
-    // A real synchronous ack — something the pure-dispatch path can never
-    // give. The GPT should still poll the result file to confirm completion.
-    return json(200, {
-      accepted: true,
-      request_id: requestId,
-      staged: stagedPath,
-      poll: `https://api.github.com/repos/${REPO}/contents/Reports/latest-ingest-result.json`,
-    });
+    return json(404, { error: "POST /ingest or GET /result only" });
   },
 };

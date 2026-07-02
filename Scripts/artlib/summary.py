@@ -48,22 +48,25 @@ def build_summary(
     }
 
 
-def write_result_file(root: str, summary: dict) -> str:
-    """Persist the summary to ``Reports/latest-upload-result.json``.
+def write_result_file(root: str, summary: dict, rel_path: str | None = None) -> str:
+    """Persist a result summary to a ``Reports/latest-*-result.json`` file.
 
-    Returns the repo-relative path written.
+    Defaults to the upload result (``Reports/latest-upload-result.json``);
+    other flows pass their own ``rel_path`` (e.g. ``constants.INGEST_RESULT_JSON``)
+    so all result files share one writer. Returns the repo-relative path written.
 
-    Note: this file is committed in the same single commit as the upload, so its
-    ``commit_sha`` is necessarily empty in the committed copy — a commit cannot
-    contain its own hash. The authoritative SHA is emitted to stdout and the
-    step summary after the commit is made.
+    Note: these files are committed in the same single commit as the work they
+    describe, so a ``commit_sha`` field is necessarily empty in the committed
+    copy — a commit cannot contain its own hash. The authoritative SHA is
+    emitted to stdout and the step summary after the commit is made.
     """
+    rel_path = rel_path or constants.UPLOAD_RESULT_JSON
     os.makedirs(os.path.join(root, constants.REPORTS_DIR), exist_ok=True)
-    path = os.path.join(root, constants.UPLOAD_RESULT_JSON)
+    path = os.path.join(root, rel_path)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    return constants.UPLOAD_RESULT_JSON
+    return rel_path
 
 
 def render_step_summary_md(summary: dict) -> str:
