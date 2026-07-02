@@ -1,12 +1,12 @@
 {
   "slug": "test-ingest-smoke",
-  "image_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png",
+  "image_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/node-design-sheet.png",
   "title": "Ingest smoke test",
   "description": "Temporary Spike A smoke-test asset; removed before merge.",
   "tags": [
     "test",
     "ingest"
   ],
-  "request_id": "spike-a-2-noop",
+  "request_id": "spike-a-3-conflict",
   "branch": "claude/artlibrary-image-ingest-xq4up8"
 }
