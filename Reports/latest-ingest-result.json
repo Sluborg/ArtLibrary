@@ -1,8 +1,8 @@
 {
   "status": "failure",
-  "request_id": "spike-a-5a-notimage",
-  "error_code": "not_an_image",
-  "error": "payload is not a decodable image: cannot identify image file <_io.BytesIO object at 0x7f5949aff830>",
+  "request_id": "spike-a-5b-expired",
+  "error_code": "link_expired",
+  "error": "download link rejected with HTTP 404 — the signed link is expired or invalid; regenerate the image and resend",
   "slug": "test-ingest-notimage",
   "path": "",
   "raw_url": "",
@@ -13,8 +13,8 @@
   "branch": "claude/artlibrary-image-ingest-xq4up8",
   "commit_sha": "",
   "attempts": 0,
-  "finished_at": "2026-07-02T11:19:22.952857+00:00",
-  "run_id": "28586017026",
-  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28586017026",
-  "started_at": "2026-07-02T11:19:22.723408+00:00"
+  "finished_at": "2026-07-02T11:20:19.069106+00:00",
+  "run_id": "28586063974",
+  "run_url": "https://github.com/Sluborg/ArtLibrary/actions/runs/28586063974",
+  "started_at": "2026-07-02T11:20:18.973153+00:00"
 }
