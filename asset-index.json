@@ -1,14 +1,48 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-30T21:07:12.562132+00:00",
+  "generated_at": "2026-07-02T11:07:58.911700+00:00",
   "repository": "Sluborg/ArtLibrary",
-  "branch": "main",
-  "asset_count": 8,
-  "total_bytes": 9554722,
+  "branch": "claude/artlibrary-image-ingest-xq4up8",
+  "asset_count": 9,
+  "total_bytes": 12428704,
   "duplicate_count": 0,
   "duplicates": [],
   "embeddings": null,
   "assets": [
+    {
+      "schema_version": 1,
+      "kind": "asset",
+      "title": "Ingest smoke test",
+      "description": "Temporary Spike A smoke-test asset; removed before merge.",
+      "prompt": "",
+      "generator": "lubot-dalle",
+      "created": "2026-07-02T11:07:57.848549+00:00",
+      "license": "internal-game-art",
+      "tags": [
+        "test",
+        "ingest"
+      ],
+      "original_filename": "test-ingest-smoke.png",
+      "collection": "AssetReport",
+      "derived_from": null,
+      "embeddings": null,
+      "source_sha256": "5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d",
+      "ingest_source": "image_url",
+      "path": "Assets/AssetReport/test-ingest-smoke.png",
+      "repository": "Sluborg/ArtLibrary",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
+      "sha256": "68f83ffb4be9ed050f9bd59150578d8305eb21ca94834d744497c63e95c7ed18",
+      "bytes": 2873982,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Assets/AssetReport/test-ingest-smoke.png",
+      "thumbnail": "Assets/AssetReport/test-ingest-smoke.thumb.png",
+      "has_embedded_metadata": true,
+      "source": "github-actions-artlibrary"
+    },
     {
       "schema_version": 1,
       "kind": "test-image",
@@ -29,15 +63,15 @@
       "embeddings": null,
       "path": "Generated/smoke-test-8x8.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "33c81a7a689d437cb91221d83f90ab37ca074c61b0e7d000c47eef9584992842",
       "bytes": 619,
       "dimensions": [
         8,
         8
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/smoke-test-8x8.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/smoke-test-8x8.png",
       "thumbnail": "Generated/smoke-test-8x8.thumb.png",
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -62,15 +96,15 @@
       "embeddings": null,
       "path": "Generated/testA.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "e92810152cdd2702890fee0b518609c6f8131347cda19ae0d0efc8fc7542d8a6",
       "bytes": 460,
       "dimensions": [
         8,
         8
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testA.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testA.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/testA.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/testA.png",
       "thumbnail": "Generated/testA.thumb.png",
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -95,15 +129,15 @@
       "embeddings": null,
       "path": "Generated/testB.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "70fc4796180c106b8edf8b81b345744617ae83eccf78eade07a380262c132cd3",
       "bytes": 460,
       "dimensions": [
         8,
         8
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testB.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testB.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/testB.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/testB.png",
       "thumbnail": "Generated/testB.thumb.png",
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -128,15 +162,15 @@
       "embeddings": null,
       "path": "Generated/testC.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "429d49c57ae1dc334d3285e68cd29a01ed3e728429537b16014bd52aba2594e0",
       "bytes": 460,
       "dimensions": [
         8,
         8
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testC.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testC.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Generated/testC.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Generated/testC.png",
       "thumbnail": "Generated/testC.thumb.png",
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -168,15 +202,15 @@
       "embeddings": null,
       "path": "Illustrations/AssetReport/map-overworld-v2.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "04020e90ecb3270806ac279fc5f2a3349320665caae9b6a7b27ae0b12e740b1f",
       "bytes": 3022211,
       "dimensions": [
         1536,
         1024
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/map-overworld-v2.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld-v2.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/map-overworld-v2.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/map-overworld-v2.png",
       "thumbnail": null,
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -207,15 +241,15 @@
       "embeddings": null,
       "path": "Illustrations/AssetReport/map-overworld.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "5b65dff9e3698a0b211640a22e00ca3fea0c2e44ff7289a6965d58561843574d",
       "bytes": 2874448,
       "dimensions": [
         1536,
         1024
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/map-overworld.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/map-overworld.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/map-overworld.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/map-overworld.png",
       "thumbnail": null,
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -241,15 +275,15 @@
       "embeddings": null,
       "path": "Illustrations/AssetReport/node-design-sheet.png",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "f351d19f69386261dc00121c8c81a3798f13b304a59099b28c0a3a45c64d293b",
       "bytes": 2122099,
       "dimensions": [
         1536,
         1024
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Illustrations/AssetReport/node-design-sheet.png",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Illustrations/AssetReport/node-design-sheet.png",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/node-design-sheet.png",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Illustrations/AssetReport/node-design-sheet.png",
       "thumbnail": null,
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
@@ -276,15 +310,15 @@
       "embeddings": null,
       "path": "Wallpapers/AssetReport/title-screen.jpg",
       "repository": "Sluborg/ArtLibrary",
-      "branch": "main",
+      "branch": "claude/artlibrary-image-ingest-xq4up8",
       "sha256": "7f962ce8f5b1ce9a326041a2e3055e7cb4f0f0726127a5e6141b1be6b597e6cf",
       "bytes": 1533965,
       "dimensions": [
         1080,
         2115
       ],
-      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Wallpapers/AssetReport/title-screen.jpg",
-      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Wallpapers/AssetReport/title-screen.jpg",
+      "github_url": "https://github.com/Sluborg/ArtLibrary/blob/claude/artlibrary-image-ingest-xq4up8/Wallpapers/AssetReport/title-screen.jpg",
+      "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/claude/artlibrary-image-ingest-xq4up8/Wallpapers/AssetReport/title-screen.jpg",
       "thumbnail": null,
       "has_embedded_metadata": true,
       "source": "github-actions-artlibrary"
