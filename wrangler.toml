@@ -1,0 +1,9 @@
+# Cloudflare Workers config at the repo root, for the dashboard's
+# connected-repo (Workers Builds) flow, which looks here by default.
+# Mirrors relay/wrangler.toml — the ingest relay is the only Worker in
+# this repo. Secrets (GITHUB_PAT, ARTLIB_SHARED_SECRET) are set in the
+# dashboard, never committed. See relay/README.md.
+
+name = "artlib-ingest"
+main = "relay/worker.js"
+compatibility_date = "2026-01-01"
