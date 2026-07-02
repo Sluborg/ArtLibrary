@@ -1,0 +1,116 @@
+# Lubot Custom GPT Action schema — Variant 1 (primary): direct GitHub dispatch.
+#
+# Paste this into ChatGPT -> Lubot -> Configure -> Actions. Auth: API Key,
+# scheme "Bearer", value = the fine-grained PAT (Contents: Read and write on
+# Sluborg/ArtLibrary only). The same PAT covers both operations.
+#
+# THE SPIKE B PROBE: `openaiFileIdRefs` sits one level deep, inside
+# `client_payload` (the GitHub dispatch API allows nothing at the top level
+# except event_type/client_payload). OpenAI documents openaiFileIdRefs only as
+# a TOP-LEVEL request property — whether ChatGPT populates it nested is
+# exactly what this schema tests. Verdict criteria in docs/INGEST.md.
+openapi: 3.1.0
+info:
+  title: ArtLibrary ingest (direct dispatch)
+  description: >-
+    Sends an approved generated image to the ArtLibrary GitHub repository and
+    verifies the result. ingestImage fires the pipeline (fire-and-forget, 204);
+    getIngestResult polls the committed result file to confirm the outcome.
+  version: 1.0.0
+servers:
+  - url: https://api.github.com
+paths:
+  /repos/Sluborg/ArtLibrary/dispatches:
+    post:
+      operationId: ingestImage
+      summary: Ingest an approved image into ArtLibrary
+      description: >-
+        Attach exactly one generated image via openaiFileIdRefs inside
+        client_payload. Returns 204 immediately; the pipeline runs
+        asynchronously — always confirm with getIngestResult afterwards.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type, client_payload]
+              properties:
+                event_type:
+                  type: string
+                  enum: [ingest-image]
+                client_payload:
+                  type: object
+                  required: [asset, request_id]
+                  properties:
+                    openaiFileIdRefs:
+                      type: array
+                      description: The approved image file to send (exactly one).
+                      items:
+                        type: string
+                    asset:
+                      type: object
+                      required: [slug]
+                      properties:
+                        slug:
+                          type: string
+                          description: >-
+                            Stable ID from the worklist, lowercase kebab-case,
+                            e.g. ui-button-primary-stamp.
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        prompt:
+                          type: string
+                          description: The generation prompt, for provenance.
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                        kind:
+                          type: string
+                          description: Optional asset kind; defaults from the target folder.
+                        collection:
+                          type: string
+                          default: AssetReport
+                        sha256:
+                          type: string
+                          description: >-
+                            Optional SHA-256 of the original image bytes for an
+                            integrity check (sha256_mismatch on failure).
+                    allow_overwrite:
+                      type: boolean
+                      default: false
+                      description: Only true when replacing an existing asset on request.
+                    request_id:
+                      type: string
+                      description: >-
+                        Fresh unique ID per attempt (e.g. slug plus timestamp);
+                        echoed by the result file so a poll can be matched to
+                        this dispatch.
+                    branch:
+                      type: string
+                      default: main
+      responses:
+        "204":
+          description: Dispatch accepted (not yet confirmed — poll getIngestResult).
+  /repos/Sluborg/ArtLibrary/contents/Reports/latest-ingest-result.json:
+    get:
+      operationId: getIngestResult
+      summary: Fetch the committed result of the most recent ingest
+      description: >-
+        Returns the base64-encoded latest-ingest-result.json. Decode `content`
+        and match `request_id` against the one sent in ingestImage; a
+        mismatched request_id means the result is stale (the run has not
+        finished — retry — or never started).
+      parameters:
+        - name: ref
+          in: query
+          required: false
+          schema:
+            type: string
+            default: main
+      responses:
+        "200":
+          description: File contents (base64 in `content`).

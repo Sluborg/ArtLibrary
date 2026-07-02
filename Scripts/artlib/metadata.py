@@ -39,6 +39,13 @@ AUTHORED_FIELDS = (
     "derived_from",
 )
 
+# Provenance fields stamped by the ingest flow (artlib.ingest): the original
+# download's hash (the idempotency/dedupe key) and which source carried it.
+PROVENANCE_FIELDS = (
+    "source_sha256",
+    "ingest_source",
+)
+
 # Fields a human/AI may meaningfully supply at upload time.
 USER_FIELDS = (
     "kind",
@@ -200,7 +207,7 @@ def validate_metadata(meta: dict | None) -> tuple[list[str], list[str]]:
         if not meta.get(governance):
             warnings.append(f"empty {governance}")
 
-    known = set(AUTHORED_FIELDS) | {"embeddings"}
+    known = set(AUTHORED_FIELDS) | set(PROVENANCE_FIELDS) | {"embeddings"}
     for k in meta:
         if k not in known:
             warnings.append(f"unknown metadata key '{k}' (preserved)")

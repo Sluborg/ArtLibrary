@@ -1,0 +1,20 @@
+{
+  "status": "placeholder",
+  "request_id": "",
+  "error_code": null,
+  "error": "No ingest has run since this file was reset. See docs/INGEST.md.",
+  "slug": "",
+  "path": "",
+  "raw_url": "",
+  "github_url": "",
+  "sha256": "",
+  "source_sha256": "",
+  "source": "",
+  "branch": "",
+  "commit_sha": "",
+  "attempts": 0,
+  "finished_at": "",
+  "run_id": "",
+  "run_url": "",
+  "started_at": ""
+}

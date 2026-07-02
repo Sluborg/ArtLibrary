@@ -1,0 +1,154 @@
+name: Ingest image
+
+# Autonomously lands a remote image as Assets/<collection>/<slug>.<ext> with
+# embedded metadata, a thumbnail, and a rebuilt index — the exit ramp for
+# Lubot's DALL·E images out of the ChatGPT sandbox. All logic lives in
+# Scripts/artlib/ingest.py; this workflow only wires the dispatch inputs to
+# the entrypoint (see docs/INGEST.md for the full wiring and Action schemas).
+#
+# The image source is one of (checked in this order):
+#   * source_path — a blob pre-staged under IngestStaging/ by the relay,
+#   * image_url   — any public https image URL,
+#   * openaiFileIdRefs — ChatGPT's file-attachment hook; each entry carries a
+#     signed download_link valid for ~5 MINUTES, so the download starts
+#     immediately and retries fast rather than slow.
+#
+# The dispatch API answers 204 with no run handle, so the run commits
+# Reports/latest-ingest-result.json on EVERY outcome (success/noop/failure)
+# with the caller's request_id echoed back — that file is the caller's only
+# confirmation channel. Re-ingesting identical bytes for an existing slug is
+# a safe no-op (dedupe via the embedded source_sha256).
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Stable ID for the asset, lowercase kebab-case (e.g. ui-button-primary-stamp)"
+        required: true
+        type: string
+      image_url:
+        description: "Public https URL of the image (alternative to openaiFileIdRefs)"
+        required: false
+        type: string
+        default: ""
+      source_path:
+        description: "Pre-staged repo path under IngestStaging/ (relay mode)"
+        required: false
+        type: string
+        default: ""
+      title:
+        description: "Asset title (defaults to the slug)"
+        required: false
+        type: string
+        default: ""
+      description:
+        description: "Asset description"
+        required: false
+        type: string
+        default: ""
+      prompt:
+        description: "Generation prompt, for provenance"
+        required: false
+        type: string
+        default: ""
+      tags:
+        description: "Tags — comma-separated or a JSON array"
+        required: false
+        type: string
+        default: ""
+      kind:
+        description: "Asset kind (defaults from the target folder: asset)"
+        required: false
+        type: string
+        default: ""
+      collection:
+        description: "Collection directory under Assets/"
+        required: false
+        type: string
+        default: "AssetReport"
+      allow_overwrite:
+        description: "Replace an existing asset with the same slug"
+        required: false
+        type: boolean
+        default: false
+      sha256:
+        description: "Expected SHA-256 of the original bytes (optional integrity check)"
+        required: false
+        type: string
+        default: ""
+      request_id:
+        description: "Caller-chosen ID echoed into the committed result file"
+        required: false
+        type: string
+        default: ""
+      branch:
+        description: "Target branch"
+        required: false
+        type: string
+        default: "main"
+  repository_dispatch:
+    types: [ingest-image]
+
+permissions:
+  contents: write
+
+# Serialize ingests per branch so two dispatches can't race the final push.
+concurrency:
+  group: ingest-image-${{ github.event.inputs.branch || github.event.client_payload.branch || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine target branch
+        id: branch
+        shell: bash
+        env:
+          # inputs.* is populated for workflow_dispatch; for repository_dispatch
+          # it is empty, so fall back to the client_payload, then to main.
+          BRANCH: ${{ inputs.branch || github.event.client_payload.branch || 'main' }}
+        run: |
+          branch="$(python3 -c 'import os,re,sys; b=os.environ.get("BRANCH") or "main"; sys.exit("bad branch") if not re.match(r"^[A-Za-z0-9._/\-]+$", b) else print(b)')"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.branch.outputs.branch }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r Scripts/requirements.txt
+
+      - name: Setup image tools
+        uses: ./.github/actions/setup-image-tools
+
+      - name: Ingest image
+        env:
+          # Both trigger types map onto the same ARTLIB_* env the script reads.
+          # repository_dispatch nests descriptive fields under client_payload.asset
+          # (the dispatch API caps client_payload at 10 TOP-LEVEL properties).
+          # openaiFileIdRefs/tags may be arrays: GitHub does not stringify
+          # arrays/objects in a direct expression, so serialise with toJSON()
+          # — an absent key renders as the string "null", which
+          # artlib.ingest treats as absent.
+          ARTLIB_SLUG: ${{ inputs.slug || github.event.client_payload.asset.slug }}
+          ARTLIB_IMAGE_URL: ${{ inputs.image_url || github.event.client_payload.image_url }}
+          ARTLIB_SOURCE_PATH: ${{ inputs.source_path || github.event.client_payload.source_path }}
+          ARTLIB_FILE_REFS: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload.openaiFileIdRefs) || '' }}
+          ARTLIB_TITLE: ${{ inputs.title || github.event.client_payload.asset.title }}
+          ARTLIB_DESCRIPTION: ${{ inputs.description || github.event.client_payload.asset.description }}
+          ARTLIB_PROMPT: ${{ inputs.prompt || github.event.client_payload.asset.prompt }}
+          ARTLIB_TAGS: ${{ inputs.tags || toJSON(github.event.client_payload.asset.tags) }}
+          ARTLIB_KIND: ${{ inputs.kind || github.event.client_payload.asset.kind }}
+          ARTLIB_COLLECTION: ${{ inputs.collection || github.event.client_payload.asset.collection }}
+          ARTLIB_SHA256: ${{ inputs.sha256 || github.event.client_payload.asset.sha256 }}
+          ARTLIB_ALLOW_OVERWRITE: ${{ inputs.allow_overwrite || github.event.client_payload.allow_overwrite }}
+          ARTLIB_REQUEST_ID: ${{ inputs.request_id || github.event.client_payload.request_id }}
+          ARTLIB_BRANCH: ${{ steps.branch.outputs.branch }}
+        run: python Scripts/ingest_image.py

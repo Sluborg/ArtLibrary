@@ -407,6 +407,7 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
+      <div class="chiprow" id="collectionRow" role="group" aria-label="Filter by collection" hidden></div>
       <div class="chiprow" id="kindRow" role="group" aria-label="Filter by kind"></div>
       <div class="chiprow" id="tagRow" role="group" aria-label="Filter by tag"></div>
     </div>
@@ -436,7 +437,7 @@
   </main>
 
   <footer class="site">
-    Live from <a href="https://github.com/Sluborg/ArtLibrary" target="_blank" rel="noopener">Sluborg/ArtLibrary</a> · collection <strong>AssetReport</strong>
+    Live from <a href="https://github.com/Sluborg/ArtLibrary" target="_blank" rel="noopener">Sluborg/ArtLibrary</a> · collection <strong id="footerCollection">AssetReport</strong>
   </footer>
 
   <div class="backdrop" id="backdrop" aria-hidden="true">
@@ -453,15 +454,26 @@
   var MANIFEST_URL = "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/asset-index.json";
   var NEEDS_URL    = "https://raw.githubusercontent.com/Sluborg/game/dev/art-needs.json";
   var COLLECTION   = "AssetReport";
+  // In-repo fallback for the needs list: the worklist tables in these docs are
+  // the human-authored backlog. Parsed client-side so the needed-vs-done panel
+  // keeps working even when the external art-needs.json is unreachable.
+  var WORKLIST_URLS = [
+    { url: "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Games/AssetReport/Buildings.md", kind: "building" },
+    { url: "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Games/AssetReport/Resources.md", kind: "resource" },
+    { url: "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Games/AssetReport/UI.md", kind: "ui" }
+  ];
+  var UNCOLLECTED = "Uncollected";
 
   var $  = function (s, r) { return (r || document).querySelector(s); };
   var el = function (tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
   var esc = function (s) { return String(s == null ? "" : s); };
 
   // ---- state ----
-  var assets = [];            // filtered AssetReport assets, decorated with .slug
+  var allAssets = [];         // every indexed asset, decorated with slug forms
+  var assets = [];            // the active-collection subset the gallery renders
   var needs  = null;          // array or null
   var query  = "";
+  var activeCollection = COLLECTION; // AssetReport by default; "" = all
   var activeKind = "";        // "" = all
   var activeTags = {};        // set of selected tags
   var manifestSlugs = null;   // Set of derived slugs present
@@ -523,7 +535,7 @@
     countUp(nIndexed, assets.length, !countAnimated);
     countAnimated = true;
 
-    if (needs && needs.length) {
+    if (needs && needs.length && needsInScope()) {
       var missing = needs.filter(function (n) { return !isDone(n); }).length;
       line.appendChild(sep());
       var nNeed = el("span", "num");
@@ -544,6 +556,13 @@
   function srAnnounce(msg) { var s = $("#sr-status"); if (s) s.textContent = msg; }
 
   // ---- needed vs done ----
+  // The needs list is AssetReport-specific: it applies when that collection is
+  // in view — directly or inside "All" (which contains it) — but not when the
+  // user scoped to a different collection.
+  function needsInScope() {
+    return activeCollection === COLLECTION || activeCollection === "";
+  }
+
   function isDone(need) {
     if (!manifestSlugs) return false;
     return manifestSlugs.has(String(need.slug || "").toLowerCase());
@@ -554,11 +573,12 @@
   // "node-design-sheet" instead of stripping it to "design-sheet"). Returns true
   // if any display slug changed so the caller can re-render the gallery.
   function resolveDisplaySlugs() {
-    if (!needs || !assets.length) return false;
+    var reportAssets = allAssets.filter(inNeedsCollection);
+    if (!needs || !reportAssets.length) return false;
     var declared = {};
     needs.forEach(function (n) { declared[String(n.slug || "").toLowerCase()] = true; });
     var changed = false;
-    assets.forEach(function (a) {
+    reportAssets.forEach(function (a) {
       var want = a._stripped;
       if (declared[String(a._raw).toLowerCase()] && !declared[String(a._stripped).toLowerCase()]) {
         want = a._raw; // the game declares the un-stripped name for this asset
@@ -572,7 +592,8 @@
     var section = $("#neededSection");
     // Only meaningful once BOTH the needs list and the manifest have loaded —
     // otherwise every item would falsely read MISSING against a null slug set.
-    if (!needs || !needs.length || !manifestLoaded) { section.hidden = true; return; }
+    // The needs list is AssetReport-specific, so hide it for other collections.
+    if (!needs || !needs.length || !manifestLoaded || !needsInScope()) { section.hidden = true; return; }
     section.hidden = false;
 
     var doneCount = needs.filter(isDone).length;
@@ -607,6 +628,60 @@
       li.appendChild(pill);
       list.appendChild(li);
     });
+  }
+
+  // ---- collections ----
+  function inNeedsCollection(a) { return a._collection === COLLECTION; }
+
+  function applyCollection() {
+    assets = activeCollection
+      ? allAssets.filter(function (a) { return a._collection === activeCollection; })
+      : allAssets.slice();
+    var footer = $("#footerCollection");
+    if (footer) footer.textContent = activeCollection || "all";
+  }
+
+  function buildCollectionChips() {
+    var row = $("#collectionRow");
+    row.innerHTML = "";
+    var counts = {};
+    allAssets.forEach(function (a) { counts[a._collection] = (counts[a._collection] || 0) + 1; });
+    var names = Object.keys(counts);
+    // Only worth showing once something exists outside the default collection.
+    if (names.length < 2) { row.hidden = true; return; }
+    row.hidden = false;
+    row.appendChild(el("span", "label", "Collection"));
+    var ordered = [COLLECTION].concat(names.filter(function (n) {
+      return n !== COLLECTION && n !== UNCOLLECTED;
+    }).sort());
+    if (counts[UNCOLLECTED]) ordered.push(UNCOLLECTED);
+    ordered.forEach(function (name) {
+      if (!counts[name]) return;
+      row.appendChild(makeCollectionChip(name, name, counts[name]));
+    });
+    row.appendChild(makeCollectionChip("", "All", allAssets.length));
+  }
+
+  function makeCollectionChip(value, label, count) {
+    var b = el("button", "chip");
+    b.type = "button";
+    b.dataset.collection = value;
+    b.setAttribute("aria-pressed", "false");
+    b.appendChild(document.createTextNode(label));
+    if (count != null) b.appendChild(el("span", "count", String(count)));
+    b.addEventListener("click", function () {
+      if (activeCollection === value) return;
+      activeCollection = value;
+      // Kind/tag counts are per-collection, so stale selections would silently
+      // empty the gallery — reset them on a collection switch.
+      activeKind = ""; activeTags = {};
+      applyCollection();
+      buildFilters();
+      render();
+      renderCountLine();
+      renderNeeded();
+    });
+    return b;
   }
 
   // ---- controls ----
@@ -672,6 +747,9 @@
   }
 
   function syncActiveStates() {
+    Array.prototype.forEach.call(document.querySelectorAll("#collectionRow .chip"), function (c) {
+      c.setAttribute("aria-pressed", (c.dataset.collection === activeCollection) ? "true" : "false");
+    });
     Array.prototype.forEach.call(document.querySelectorAll("#kindRow .chip"), function (c) {
       c.setAttribute("aria-pressed", (c.dataset.kind === activeKind) ? "true" : "false");
     });
@@ -953,6 +1031,7 @@
     manifestLoaded = false;
     $("#countline").textContent = "Couldn't load the library";
     $("#neededSection").hidden = true;   // needs are meaningless without the manifest
+    $("#collectionRow").hidden = true;
     var grid = $("#grid"); grid.innerHTML = "";
     var d = el("div", "state"); d.style.gridColumn = "1 / -1"; d.setAttribute("role", "alert");
     d.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/></svg>';
@@ -971,17 +1050,20 @@
       return res.json();
     }).then(function (data) {
       var all = (data && Array.isArray(data.assets)) ? data.assets : [];
-      assets = all.filter(function (a) { return a && a.collection === COLLECTION; })
-                  .map(function (a) {
-                    var f = slugForms(a.path);
-                    a._raw = f.raw; a._stripped = f.stripped;
-                    a.slug = f.stripped;   // default display; refined once needs load
-                    return a;
-                  });
+      allAssets = all.filter(Boolean).map(function (a) {
+        var f = slugForms(a.path);
+        a._raw = f.raw; a._stripped = f.stripped;
+        a.slug = f.stripped;   // default display; refined once needs load
+        a._collection = a.collection || UNCOLLECTED;
+        return a;
+      });
+      applyCollection();
       // A produced slug is "present" under BOTH forms so a need matches whether it
       // declares the stripped name (home-keep) or the full one (node-design-sheet).
+      // Built from the AssetReport collection only — the needs list is scoped to
+      // it, and assets elsewhere must not flip a need to DONE.
       manifestSlugs = new Set();
-      assets.forEach(function (a) {
+      allAssets.filter(inNeedsCollection).forEach(function (a) {
         if (!a.raw_url) return;
         manifestSlugs.add(String(a._raw).toLowerCase());
         manifestSlugs.add(String(a._stripped).toLowerCase());
@@ -991,15 +1073,83 @@
     });
   }
 
+  // Parse the worklist tables out of a Games/AssetReport/*.md doc. Each table
+  // sits under an HTML anchor comment (<!-- worklist: key -->); its first
+  // column is the backtick-wrapped stable slug and one column is the
+  // description (header text varies per doc, so it's located by name).
+  function parseWorklistNeeds(md, docKind) {
+    var out = [];
+    var lines = String(md || "").split("\n");
+    var inTable = false, descCol = -1, statusCol = -1;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!inTable) {
+        if (line.indexOf("<!-- worklist:") !== -1) {
+          // Find the header row (first "|" line after the anchor).
+          while (++i < lines.length && lines[i].trim().indexOf("|") !== 0) {}
+          if (i >= lines.length) break;
+          var headers = splitRow(lines[i]);
+          descCol = -1; statusCol = -1;
+          headers.forEach(function (h, idx) {
+            if (descCol === -1 && /description|role/i.test(h)) descCol = idx;
+            if (statusCol === -1 && /status/i.test(h)) statusCol = idx;
+          });
+          if (descCol === -1) descCol = 1; // fall back to the display name
+          i++; // skip the |---| separator row
+          inTable = true;
+        }
+        continue;
+      }
+      var cells = splitRow(line);
+      if (!cells) { inTable = false; continue; }
+      var slug = cells[0].replace(/`/g, "").trim().toLowerCase();
+      if (!slug || slug.indexOf("---") === 0) continue;
+      // A row the worklist itself marks done is no longer a need.
+      if (statusCol !== -1 && /^done/i.test((cells[statusCol] || "").trim())) continue;
+      out.push({ slug: slug, kind: docKind, description: (cells[descCol] || "").trim() });
+    }
+    function splitRow(line) {
+      line = line.trim();
+      if (line.indexOf("|") !== 0) return null;
+      return line.replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); });
+    }
+    return out;
+  }
+
   function loadNeeds() {
-    // best-effort; never blocks the gallery
-    return fetch(NEEDS_URL, { cache: "no-store" }).then(function (res) {
+    // Best-effort; never blocks the gallery. Two sources race in parallel:
+    // the game repo's art-needs.json (the slug-spelling authority) and this
+    // repo's worklist docs (so the panel survives the game repo being
+    // unreachable). Union by slug; the external entry wins on collision.
+    var external = fetch(NEEDS_URL, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("needs " + res.status);
       return res.json();
     }).then(function (data) {
       var arr = Array.isArray(data) ? data : (data && Array.isArray(data.needs) ? data.needs : null);
-      needs = (arr && arr.length) ? arr : null;
-    }).catch(function () { needs = null; });
+      return arr || [];
+    }).catch(function () { return []; });
+
+    var worklists = Promise.all(WORKLIST_URLS.map(function (w) {
+      return fetch(w.url, { cache: "no-store" }).then(function (res) {
+        if (!res.ok) throw new Error("worklist " + res.status);
+        return res.text();
+      }).then(function (md) {
+        return parseWorklistNeeds(md, w.kind);
+      }).catch(function () { return []; });
+    }));
+
+    return Promise.all([external, worklists]).then(function (results) {
+      var bySlug = {};
+      results[1].forEach(function (list) {
+        list.forEach(function (n) { bySlug[n.slug] = n; });
+      });
+      results[0].forEach(function (n) {
+        var slug = String(n.slug || "").toLowerCase();
+        if (slug) bySlug[slug] = n; // external wins
+      });
+      var merged = Object.keys(bySlug).map(function (k) { return bySlug[k]; });
+      needs = merged.length ? merged : null;
+    });
   }
 
   // Keep the sticky controls flush under the header no matter how tall it is
@@ -1019,6 +1169,7 @@
     // Manifest and needs load independently; the needed-vs-done panel depends on
     // BOTH, so re-render it whenever either finishes.
     loadManifest().then(function () {
+      buildCollectionChips();
       buildFilters();
       render();
       renderCountLine();
