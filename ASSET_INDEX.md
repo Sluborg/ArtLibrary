@@ -2,14 +2,13 @@
 
 > Generated automatically — do not edit by hand. Run the Asset Index workflow or `Scripts/build_index.py` to regenerate.
 
-- **Assets:** 9
-- **Total size:** 9.2 MB
+- **Assets:** 8
+- **Total size:** 9.1 MB
 - **Duplicates:** 0
-- **Generated:** 2026-07-02T18:44:54.801129+00:00
+- **Generated:** 2026-07-02T18:48:16.453293+00:00
 
 | Asset | Kind | Dimensions | Size | SHA-256 | Links |
 | --- | --- | --- | --- | --- | --- |
-| `Assets/AssetReport/test-spike-b.jpg` | asset | 1045×2048 | 122.4 KB | `0812ed0ecd7b` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Assets/AssetReport/test-spike-b.jpg) · [view](https://github.com/Sluborg/ArtLibrary/blob/main/Assets/AssetReport/test-spike-b.jpg) |
 | `Generated/smoke-test-8x8.png` | test-image | 8×8 | 619 B | `33c81a7a689d` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/smoke-test-8x8.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/main/Generated/smoke-test-8x8.png) |
 | `Generated/testA.png` | test-image | 8×8 | 460 B | `e92810152cdd` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testA.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testA.png) |
 | `Generated/testB.png` | test-image | 8×8 | 460 B | `70fc4796180c` | [raw](https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Generated/testB.png) · [view](https://github.com/Sluborg/ArtLibrary/blob/main/Generated/testB.png) |

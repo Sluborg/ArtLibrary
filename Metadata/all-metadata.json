@@ -1,40 +1,6 @@
 [
   {
     "schema_version": 1,
-    "kind": "asset",
-    "title": "Spike B test",
-    "description": "Uploaded screenshot ingested as Spike B test.",
-    "prompt": "",
-    "generator": "lubot-dalle",
-    "created": "2026-07-02T18:44:54.495093+00:00",
-    "license": "internal-game-art",
-    "tags": [
-      "test",
-      "spike-b"
-    ],
-    "original_filename": "test-spike-b.jpg",
-    "collection": "AssetReport",
-    "derived_from": null,
-    "embeddings": null,
-    "source_sha256": "7197c0f959a62eb3537acad4829a901ee6274ba71b15b58588aa6a680a0f7c25",
-    "ingest_source": "staging",
-    "path": "Assets/AssetReport/test-spike-b.jpg",
-    "repository": "Sluborg/ArtLibrary",
-    "branch": "main",
-    "sha256": "0812ed0ecd7b3afd2b0c8cb1e6c9ec39fde910162fd13f77bd125ef81ca53e59",
-    "bytes": 125372,
-    "dimensions": [
-      1045,
-      2048
-    ],
-    "github_url": "https://github.com/Sluborg/ArtLibrary/blob/main/Assets/AssetReport/test-spike-b.jpg",
-    "raw_url": "https://raw.githubusercontent.com/Sluborg/ArtLibrary/main/Assets/AssetReport/test-spike-b.jpg",
-    "thumbnail": "Assets/AssetReport/test-spike-b.thumb.jpg",
-    "has_embedded_metadata": true,
-    "source": "github-actions-artlibrary"
-  },
-  {
-    "schema_version": 1,
     "kind": "test-image",
     "title": "Smoke test 8x8 icon",
     "description": "Tiny generated PNG used to test ArtLibrary upload, metadata, indexing and automation flow.",
