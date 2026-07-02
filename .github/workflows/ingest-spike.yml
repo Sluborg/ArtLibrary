@@ -1,0 +1,56 @@
+name: Ingest spike (temporary)
+
+# TEMPORARY Spike A test harness — deleted before the PR is finalized.
+#
+# The session driving this branch has no PAT and its GitHub integration lacks
+# actions:write, so it can fire neither repository_dispatch nor
+# workflow_dispatch. This workflow substitutes the trigger: pushing
+# .github/ingest-spike-request.json runs the EXACT same ARTLIB_* env ->
+# Scripts/ingest_image.py code path as ingest-image.yml, with the env read
+# from the committed request file instead of dispatch inputs.
+
+on:
+  push:
+    branches: [claude/artlibrary-image-ingest-xq4up8]
+    paths: [".github/ingest-spike-request.json"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ingest-spike
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r Scripts/requirements.txt
+
+      - name: Setup image tools
+        uses: ./.github/actions/setup-image-tools
+
+      - name: Map request file to ARTLIB_* env
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          req = json.load(open(".github/ingest-spike-request.json"))
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              for key, value in req.items():
+                  if not isinstance(value, str):
+                      value = json.dumps(value)
+                  assert "\n" not in value
+                  env.write(f"ARTLIB_{key.upper()}={value}\n")
+          EOF
+
+      - name: Ingest image
+        run: python Scripts/ingest_image.py
