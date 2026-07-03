@@ -1,7 +1,7 @@
 # Lubot Custom GPT Action schema — Variant 2 (fallback): Cloudflare Worker relay.
 #
 # Use ONLY if Spike B fails (ChatGPT won't populate openaiFileIdRefs nested in
-# client_payload — see docs/INGEST.md). Deploy relay/worker.js first, then set
+# client_payload — see ingest-docs/INGEST.md). Deploy relay/worker.js first, then set
 # the server URL below to the printed workers.dev URL. Auth: API Key, custom
 # header name "X-Artlib-Key", value = the ARTLIB_SHARED_SECRET Worker secret.
 #

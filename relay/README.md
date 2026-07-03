@@ -4,7 +4,7 @@
 `openaiFileIdRefs` with a real `download_link` when the parameter is nested
 inside a `repository_dispatch` `client_payload` — only top-level. This Worker
 receives it top-level, and end-to-end ingest through it is confirmed working
-(`docs/INGEST.md`, Spike B verdict). Deployed via Cloudflare's GitHub-connected
+(`ingest-docs/INGEST.md`, Spike B verdict). Deployed via Cloudflare's GitHub-connected
 build against the repo-root [`wrangler.toml`](../wrangler.toml).
 
 ## What it does
@@ -45,7 +45,7 @@ npx wrangler deploy                      # prints https://artlib-ingest.<account
 ```
 
 Then switch the Lubot Action to
-[`docs/lubot-action-relay.yaml`](../docs/lubot-action-relay.yaml), set its
+[`ingest-docs/lubot-action-relay.yaml`](../ingest-docs/lubot-action-relay.yaml), set its
 server URL to the printed `workers.dev` URL, and set the Action auth to
 API Key → custom header `X-Artlib-Key` → the shared secret value.
 

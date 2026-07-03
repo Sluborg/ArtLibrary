@@ -8,7 +8,7 @@
 # `client_payload` (the GitHub dispatch API allows nothing at the top level
 # except event_type/client_payload). OpenAI documents openaiFileIdRefs only as
 # a TOP-LEVEL request property — whether ChatGPT populates it nested is
-# exactly what this schema tests. Verdict criteria in docs/INGEST.md.
+# exactly what this schema tests. Verdict criteria in ingest-docs/INGEST.md.
 openapi: 3.1.0
 info:
   title: ArtLibrary ingest (direct dispatch)

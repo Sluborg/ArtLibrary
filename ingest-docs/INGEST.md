@@ -227,7 +227,7 @@ entirely (it fetches within seconds of minting), even if Spike B succeeds.
 >
 > Positive half: the Worker relay (`../relay/`, deployed via Cloudflare's
 > GitHub-connected build against the root `wrangler.toml`) with
-> `docs/lubot-action-relay.yaml` was then wired up and tested — request_id
+> `ingest-docs/lubot-action-relay.yaml` was then wired up and tested — request_id
 > `spike-b-3` returned `status: success`, `source: "staging"`, and a working
 > `raw_url` ([run 28613695557](https://github.com/Sluborg/ArtLibrary/actions/runs/28613695557),
 > asset committed in `23194f3`). **This is the standing architecture**: the

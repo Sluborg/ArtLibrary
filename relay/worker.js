@@ -3,7 +3,7 @@
  *
  * Deploy ONLY if the direct-dispatch path fails, i.e. ChatGPT will not
  * populate `openaiFileIdRefs` nested inside a repository_dispatch
- * `client_payload` (see docs/INGEST.md, "Spike B"). This Worker is then the
+ * `client_payload` (see ingest-docs/INGEST.md, "Spike B"). This Worker is then the
  * Custom GPT Action endpoint instead: it receives `openaiFileIdRefs` at the
  * TOP LEVEL of the request body (the shape OpenAI documents), fetches the
  * signed download_link immediately — within seconds of ChatGPT minting it,

@@ -4,7 +4,7 @@ name: Ingest image
 # embedded metadata, a thumbnail, and a rebuilt index — the exit ramp for
 # Lubot's DALL·E images out of the ChatGPT sandbox. All logic lives in
 # Scripts/artlib/ingest.py; this workflow only wires the dispatch inputs to
-# the entrypoint (see docs/INGEST.md for the full wiring and Action schemas).
+# the entrypoint (see ingest-docs/INGEST.md for the full wiring and Action schemas).
 #
 # The image source is one of (checked in this order):
 #   * source_path — a blob pre-staged under IngestStaging/ by the relay,
