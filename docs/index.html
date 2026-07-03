@@ -483,6 +483,13 @@
   ];
   var UNCOLLECTED = "Uncollected";
 
+  // Offline snapshot hooks. The standalone build (scripts/build-standalone.mjs)
+  // replaces the JSON between the markers so the artifact loads with zero
+  // network — needed because some WebViews block the redirect to the live Pages
+  // URL. Left as null here, so this page fetches live exactly as it always has.
+  var EMBEDDED_MANIFEST = /*@@MANIFEST@@*/null/*@@END@@*/;
+  var EMBEDDED_NEEDS    = /*@@NEEDS@@*/null/*@@END@@*/;
+
   var $  = function (s, r) { return (r || document).querySelector(s); };
   var el = function (tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
   var esc = function (s) { return String(s == null ? "" : s); };
@@ -1176,10 +1183,13 @@
 
   // ---- data loading ----
   function loadManifest() {
-    return fetch(MANIFEST_URL, { cache: "no-store" }).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status + " fetching the manifest.");
-      return res.json();
-    }).then(function (data) {
+    var source = EMBEDDED_MANIFEST
+      ? Promise.resolve(EMBEDDED_MANIFEST)
+      : fetch(MANIFEST_URL, { cache: "no-store" }).then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status + " fetching the manifest.");
+          return res.json();
+        });
+    return source.then(function (data) {
       var all = (data && Array.isArray(data.assets)) ? data.assets : [];
       allAssets = all.filter(Boolean).map(function (a) {
         var f = slugForms(a.path);
@@ -1248,6 +1258,15 @@
   }
 
   function loadNeeds() {
+    // Offline snapshot: use the embedded needs and skip every network source,
+    // so the standalone artifact makes zero requests. (null on the live page.)
+    if (EMBEDDED_NEEDS) {
+      var embedded = Array.isArray(EMBEDDED_NEEDS)
+        ? EMBEDDED_NEEDS
+        : (EMBEDDED_NEEDS && Array.isArray(EMBEDDED_NEEDS.needs) ? EMBEDDED_NEEDS.needs : []);
+      needs = embedded.length ? embedded : null;
+      return Promise.resolve();
+    }
     // Best-effort; never blocks the gallery. Two sources race in parallel:
     // the game repo's art-needs.json (the slug-spelling authority) and this
     // repo's worklist docs (so the panel survives the game repo being
