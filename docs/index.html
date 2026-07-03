@@ -781,6 +781,14 @@
       render();
       renderCountLine();
       renderNeeded();
+      // buildFilterRow() just wiped and rebuilt the whole row (this button
+      // included), so the browser dropped focus back to the document — hand
+      // it to the replacement chip for the collection we just switched to.
+      var replacement = null;
+      Array.prototype.forEach.call(document.querySelectorAll("#filterRow .chip[data-collection]"), function (c) {
+        if (c.dataset.collection === value) replacement = c;
+      });
+      if (replacement) replacement.focus();
     });
     return b;
   }
