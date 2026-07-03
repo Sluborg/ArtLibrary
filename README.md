@@ -289,6 +289,7 @@ report and exits non-zero if anything is missing.
 | **Repair Repository** | `repair-repository.yml` | manual | rebuild ALL derived state from assets, no asset loss |
 | **Register worklist row** | `register-worklist.yml` | manual + `repository_dispatch` | **append** a row to a worklist table (`Games/<Project>/*.md`) atomically + losslessly; dedupe on slug; never rewrites the doc |
 | **Release** | `release.yml` | manual + tag `v*` | package ZIP + index + metadata as Release Assets |
+| **Deploy viewer** | `deploy-viewer.yml` | push to `viewer/**` + manual | publish `viewer/` (only the viewer) to GitHub Pages via Actions |
 
 System image tools (ImageMagick, optipng, jpegoptim, webp) are installed by a
 single composite action, `.github/actions/setup-image-tools`, so the install
