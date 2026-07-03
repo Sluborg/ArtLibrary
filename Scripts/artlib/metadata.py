@@ -37,6 +37,7 @@ AUTHORED_FIELDS = (
     "original_filename",
     "collection",
     "derived_from",
+    "is_template",
 )
 
 # Provenance fields stamped by the ingest flow (artlib.ingest): the original
@@ -57,6 +58,7 @@ USER_FIELDS = (
     "tags",
     "collection",
     "derived_from",
+    "is_template",
 )
 
 
@@ -101,6 +103,7 @@ def build_authored_metadata(
         "original_filename": original_filename or os.path.basename(rel_path),
         "collection": user_meta.get("collection"),
         "derived_from": user_meta.get("derived_from"),
+        "is_template": bool(user_meta.get("is_template", False)),
         # Reserved for future semantic / visual-similarity search. Kept null so
         # consumers can rely on the key existing without restructuring later.
         "embeddings": user_meta.get("embeddings"),

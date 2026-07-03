@@ -114,6 +114,7 @@ preserved. The **authored** metadata schema (`schema_version` 1):
   "original_filename": "castle.png",
   "collection": "Fantasy/Buildings",    // lineage: grouping
   "derived_from": null,                 // lineage: parent/version
+  "is_template": false,                 // true = canonical base/template asset others derive from
   "embeddings": null                    // reserved for future semantic search
 }
 ```
