@@ -88,7 +88,7 @@
   }
   a { color: var(--primary); }
   img { display: block; }
-  button { font-family: inherit; }
+  button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
   :focus-visible {
     outline: 2px solid var(--focus);
@@ -183,6 +183,8 @@
   }
   .chip.clear-filters { border-style: dashed; color: var(--muted); }
   .chip .count { font-weight: 600; opacity: .65; font-variant-numeric: tabular-nums; }
+  a.chip { text-decoration: none; }
+  .chip-divider { flex: 0 0 auto; align-self: stretch; width: 1px; margin: 4px 4px; background: var(--border); }
 
   /* ============================ Sections ============================ */
   main .wrap { padding-top: 20px; padding-bottom: 48px; }
@@ -206,15 +208,17 @@
   }
   ul.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .need-item {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; gap: 10px;
     padding: 12px 14px; border-radius: var(--radius-ctrl);
     background: var(--surface); border: 1px solid var(--border);
   }
   .need-item.is-missing { border-style: dashed; }
+  .need-item .top { display: flex; align-items: center; gap: 12px; }
   .need-item .meta { min-width: 0; flex: 1; }
   .need-item .slug { font-family: var(--mono); font-size: 14px; font-weight: 600; word-break: break-word; }
   .need-item .desc { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
   .need-item .desc .k { text-transform: uppercase; letter-spacing: .04em; font-weight: 700; font-size: 10.5px; }
+  .need-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .status-pill {
     flex: 0 0 auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
     padding: 5px 10px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 5px;
@@ -226,9 +230,9 @@
   /* ============================ Gallery ============================ */
   .grid {
     display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+  .card.large { grid-column: 1 / -1; }
 
   .card {
     display: flex; flex-direction: column; text-align: left; padding: 0;
@@ -274,6 +278,9 @@
     align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .04em; padding: 4px 9px; border-radius: var(--radius-pill);
     color: var(--k-default); background: var(--k-default-bg);
+  }
+  .badge.badge-template {
+    color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, transparent);
   }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
   .tag {
@@ -370,6 +377,14 @@
   .copy-btn.ok { color: var(--done); border-color: var(--done); }
   .m-actions { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
   .m-actions .btn { flex: 1 1 auto; }
+  .composer-label {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+  }
+  .composer-textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-ctrl);
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 14px;
+    padding: 10px; resize: vertical;
+  }
 
   /* ============================ Toast ============================ */
   .toast {
@@ -408,8 +423,7 @@
         </button>
       </div>
       <div class="chiprow" id="collectionRow" role="group" aria-label="Filter by collection" hidden></div>
-      <div class="chiprow" id="kindRow" role="group" aria-label="Filter by kind"></div>
-      <div class="chiprow" id="tagRow" role="group" aria-label="Filter by tag"></div>
+      <div class="chiprow" id="filterRow" role="group" aria-label="Filter by kind and tag"></div>
     </div>
   </div>
 
@@ -422,6 +436,11 @@
         </div>
         <div class="progress" role="progressbar" id="progressBar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-label="Art delivered">
           <span id="progressFill"></span>
+        </div>
+        <div class="chiprow" id="neededFilterRow" role="radiogroup" aria-label="Filter needed items">
+          <button class="chip" type="button" data-need-filter="" aria-pressed="true">All</button>
+          <button class="chip" type="button" data-need-filter="needed" aria-pressed="false">Needed</button>
+          <button class="chip" type="button" data-need-filter="done" aria-pressed="false">Done</button>
         </div>
         <ul class="checklist" id="checklist"></ul>
       </section>
@@ -476,6 +495,7 @@
   var activeCollection = COLLECTION; // AssetReport by default; "" = all
   var activeKind = "";        // "" = all
   var activeTags = {};        // set of selected tags
+  var neededFilter = "";      // "" = all, "needed", "done" — Needed-vs-Done panel only
   var manifestSlugs = null;   // Set of derived slugs present
   var manifestLoaded = false; // true only after the manifest actually resolves
   var countAnimated = false;  // guard so the indexed count-up runs once
@@ -607,27 +627,123 @@
 
     var list = $("#checklist");
     list.innerHTML = "";
-    var sorted = needs.slice().sort(function (a, b) {
+    var sorted = needs.slice().filter(function (n) {
+      if (neededFilter === "done") return isDone(n);
+      if (neededFilter === "needed") return !isDone(n);
+      return true;
+    }).sort(function (a, b) {
       var da = isDone(a) ? 1 : 0, db = isDone(b) ? 1 : 0;
       if (da !== db) return da - db;                       // missing first
       return String(a.slug).localeCompare(String(b.slug));
     });
+    if (!sorted.length) {
+      var empty = el("li", "need-item", null);
+      empty.appendChild(el("div", "meta desc", "No items match this filter."));
+      list.appendChild(empty);
+      return;
+    }
     sorted.forEach(function (n) {
       var done = isDone(n);
       var li = el("li", "need-item" + (done ? "" : " is-missing"));
+
+      var top = el("div", "top");
       var meta = el("div", "meta");
       meta.appendChild(el("div", "slug", esc(n.slug)));
       var desc = el("div", "desc");
       if (n.kind) { var k = el("span", "k", esc(n.kind)); desc.appendChild(k); desc.appendChild(document.createTextNode(" · ")); }
       desc.appendChild(document.createTextNode(esc(n.description || "")));
       meta.appendChild(desc);
-      li.appendChild(meta);
+      top.appendChild(meta);
 
       var pill = el("span", "status-pill " + (done ? "done" : "missing"));
       pill.appendChild(document.createTextNode(done ? "✓ DONE" : "! MISSING · needs art"));
-      li.appendChild(pill);
+      top.appendChild(pill);
+      li.appendChild(top);
+
+      var actionsRow = el("div", "need-actions");
+      var markBtn = el("button", "chip", done ? "Mark still needed" : "Mark done");
+      markBtn.type = "button";
+      markBtn.addEventListener("click", function () { openComposer(n, done ? "needed" : "done", markBtn); });
+      actionsRow.appendChild(markBtn);
+      var discuss = el("a", "chip", "Discuss on GitHub");
+      discuss.href = discussUrl(n); discuss.target = "_blank"; discuss.rel = "noopener";
+      actionsRow.appendChild(discuss);
+      li.appendChild(actionsRow);
+
       list.appendChild(li);
     });
+  }
+
+  // ---- needed-panel filter (All / Needed / Done segmented control) ----
+  Array.prototype.forEach.call(document.querySelectorAll("#neededFilterRow .chip"), function (b) {
+    b.addEventListener("click", function () {
+      neededFilter = b.dataset.needFilter;
+      Array.prototype.forEach.call(document.querySelectorAll("#neededFilterRow .chip"), function (c) {
+        c.setAttribute("aria-pressed", c === b ? "true" : "false");
+      });
+      renderNeeded();
+    });
+  });
+
+  // ---- propose a status change, routed through a prefilled GitHub issue ----
+  function issueUrl(need, verdict, comment) {
+    var title = "[" + need.slug + "] proposing: " + (verdict === "done" ? "done" : "still needed");
+    var status = isDone(need) ? "done (per current manifest)" : "missing (per current manifest)";
+    var lines = [];
+    if (comment) lines.push(comment, "");
+    lines.push("— current computed status: " + status);
+    if (need.kind) lines.push("— kind: " + need.kind);
+    if (need.description) lines.push("— description: " + need.description);
+    var params = new URLSearchParams({ title: title, body: lines.join("\n") });
+    return "https://github.com/Sluborg/ArtLibrary/issues/new?" + params.toString();
+  }
+
+  function discussUrl(need) {
+    return "https://github.com/Sluborg/ArtLibrary/issues?q=" + encodeURIComponent('is:issue "[' + need.slug + ']" in:title');
+  }
+
+  function openComposer(need, verdict, originEl) {
+    lastFocused = originEl || document.activeElement;
+    var modal = $("#modal");
+    modal.innerHTML = "";
+
+    var close = el("button", "modal-close", "✕");
+    close.type = "button"; close.setAttribute("aria-label", "Close");
+    close.addEventListener("click", closeModal);
+
+    var grab = el("div", "grab");
+
+    var b = el("div", "m-body");
+    var h = el("h2", null, verdict === "done" ? "Propose: mark done" : "Propose: still needed");
+    h.id = "modalTitle";
+    b.appendChild(h);
+    b.appendChild(el("div", "m-slug", need.slug));
+
+    var label = el("label", "composer-label", "Comment (optional)");
+    label.setAttribute("for", "composerText");
+    var textarea = document.createElement("textarea");
+    textarea.id = "composerText";
+    textarea.className = "composer-textarea";
+    textarea.rows = 4;
+    textarea.placeholder = "Add context for the discussion…";
+
+    var actions = el("div", "m-actions");
+    var send = el("button", "btn primary", "Open GitHub issue"); send.type = "button";
+    send.addEventListener("click", function () {
+      window.open(issueUrl(need, verdict, textarea.value.trim()), "_blank", "noopener");
+      closeModal();
+    });
+    actions.appendChild(send);
+
+    b.appendChild(label);
+    b.appendChild(textarea);
+    b.appendChild(actions);
+
+    modal.appendChild(grab);
+    modal.appendChild(close);
+    modal.appendChild(b);
+
+    showBackdrop(close);
   }
 
   // ---- collections ----
@@ -692,23 +808,19 @@
       (a.tags || []).forEach(function (t) { tags[t] = (tags[t] || 0) + 1; });
     });
 
-    var kindRow = $("#kindRow");
-    kindRow.innerHTML = "";
-    kindRow.appendChild(el("span", "label", "Kind"));
-    kindRow.appendChild(makeKindChip("", "All", assets.length));
+    var filterRow = $("#filterRow");
+    filterRow.innerHTML = "";
+    filterRow.appendChild(el("span", "label", "Kind"));
+    filterRow.appendChild(makeKindChip("", "All", assets.length));
     Object.keys(kinds).sort().forEach(function (k) {
-      kindRow.appendChild(makeKindChip(k, k, kinds[k]));
+      filterRow.appendChild(makeKindChip(k, k, kinds[k]));
     });
 
-    var tagRow = $("#tagRow");
-    tagRow.innerHTML = "";
     var tagNames = Object.keys(tags).sort(function (a, b) { return tags[b] - tags[a] || a.localeCompare(b); });
     if (tagNames.length) {
-      tagRow.hidden = false;
-      tagRow.appendChild(el("span", "label", "Tag"));
-      tagNames.forEach(function (t) { tagRow.appendChild(makeTagChip(t)); });
-    } else {
-      tagRow.hidden = true;
+      filterRow.appendChild(el("div", "chip-divider"));
+      filterRow.appendChild(el("span", "label", "Tag"));
+      tagNames.forEach(function (t) { filterRow.appendChild(makeTagChip(t)); });
     }
     syncActiveStates();
   }
@@ -750,20 +862,20 @@
     Array.prototype.forEach.call(document.querySelectorAll("#collectionRow .chip"), function (c) {
       c.setAttribute("aria-pressed", (c.dataset.collection === activeCollection) ? "true" : "false");
     });
-    Array.prototype.forEach.call(document.querySelectorAll("#kindRow .chip"), function (c) {
+    Array.prototype.forEach.call(document.querySelectorAll("#filterRow .chip[data-kind]"), function (c) {
       c.setAttribute("aria-pressed", (c.dataset.kind === activeKind) ? "true" : "false");
     });
-    Array.prototype.forEach.call(document.querySelectorAll("#tagRow .chip"), function (c) {
+    Array.prototype.forEach.call(document.querySelectorAll("#filterRow .chip[data-tag]"), function (c) {
       c.setAttribute("aria-pressed", activeTags[c.dataset.tag] ? "true" : "false");
     });
-    // clear-filters chip on the kind row
+    // clear-filters chip on the merged filter row
     var existing = $("#clearChip");
     if (anyFilterActive()) {
       if (!existing) {
         var chip = el("button", "chip clear-filters");
         chip.id = "clearChip"; chip.type = "button"; chip.textContent = "✕ Clear filters";
         chip.addEventListener("click", resetFilters);
-        $("#kindRow").appendChild(chip);
+        $("#filterRow").appendChild(chip);
       }
     } else if (existing) {
       existing.remove();
@@ -834,7 +946,7 @@
   }
 
   function buildCard(a) {
-    var card = el("button", "card");
+    var card = el("button", "card" + (a.kind === "wallpaper" ? " large" : ""));
     card.type = "button";
     card.setAttribute("aria-label", a.title + ", " + (a.kind || "asset") + ", slug " + a.slug);
 
@@ -856,6 +968,7 @@
     var kt = kindTokens(a.kind);
     badge.style.color = kt.c; badge.style.background = kt.bg;
     body.appendChild(badge);
+    if (a.is_template) body.appendChild(el("span", "badge badge-template", "⚑ template"));
 
     if (a.tags && a.tags.length) {
       var tags = el("div", "tags");
@@ -898,12 +1011,26 @@
     var badge = el("span", "badge", (a.kind || "asset"));
     var kt = kindTokens(a.kind); badge.style.color = kt.c; badge.style.background = kt.bg;
     b.appendChild(badge);
+    if (a.is_template) b.appendChild(el("span", "badge badge-template", "⚑ template"));
     if (a.description) b.appendChild(el("p", "m-desc", a.description));
 
     var dl = el("dl", "meta");
     function row(term, ddNode) { dl.appendChild(el("dt", null, term)); dl.appendChild(ddNode); }
     if (a.dimensions && a.dimensions.length === 2) row("Dimensions", el("dd", "mono", a.dimensions[0] + " × " + a.dimensions[1]));
     if (a.collection) row("Collection", el("dd", null, a.collection));
+    if (a.derived_from) {
+      var parent = allAssets.filter(function (x) { return x.path === a.derived_from; })[0];
+      var lineageDd = el("dd");
+      if (parent) {
+        var lineageLink = el("a", null, parent.title || a.derived_from);
+        lineageLink.href = "#";
+        lineageLink.addEventListener("click", function (e) { e.preventDefault(); openModal(parent, lineageLink); });
+        lineageDd.appendChild(lineageLink);
+      } else {
+        lineageDd.appendChild(document.createTextNode(a.derived_from));
+      }
+      row("Derived from", lineageDd);
+    }
     if (a.tags && a.tags.length) {
       var td = el("dd"); var wrap = el("div", "tags");
       a.tags.forEach(function (t) { wrap.appendChild(el("span", "tag", t)); });
@@ -931,11 +1058,15 @@
     modal.appendChild(thumb);
     modal.appendChild(b);
 
+    showBackdrop(close);
+  }
+
+  function showBackdrop(focusEl) {
     var backdrop = $("#backdrop");
     backdrop.classList.add("open");
     backdrop.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
-    close.focus();
+    if (focusEl && focusEl.focus) focusEl.focus();
     document.addEventListener("keydown", onKeydown, true);
   }
 
