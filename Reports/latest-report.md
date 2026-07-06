@@ -1,11 +1,11 @@
 # Repository Report
 
-_Generated 2026-07-02T18:44:55.073619+00:00_
+_Generated 2026-07-06T07:40:45.855234+00:00_
 
 ## Summary
 
-- **Assets:** 9
-- **Storage used:** 9.2 MB
+- **Assets:** 8
+- **Storage used:** 9.1 MB
 - **Missing metadata:** 0
 - **Duplicate groups:** 0
 
@@ -13,7 +13,7 @@ _Generated 2026-07-02T18:44:55.073619+00:00_
 
 | Extension | Count | Size |
 | --- | --- | --- |
-| `.jpg` | 2 | 1.6 MB |
+| `.jpg` | 1 | 1.5 MB |
 | `.png` | 7 | 7.6 MB |
 
 ## Largest assets
@@ -24,7 +24,6 @@ _Generated 2026-07-02T18:44:55.073619+00:00_
 | `Illustrations/AssetReport/map-overworld.png` | 2.7 MB |
 | `Illustrations/AssetReport/node-design-sheet.png` | 2.0 MB |
 | `Wallpapers/AssetReport/title-screen.jpg` | 1.5 MB |
-| `Assets/AssetReport/test-spike-b.jpg` | 122.4 KB |
 | `Generated/smoke-test-8x8.png` | 619 B |
 | `Generated/testA.png` | 460 B |
 | `Generated/testB.png` | 460 B |
@@ -34,7 +33,6 @@ _Generated 2026-07-02T18:44:55.073619+00:00_
 
 | Asset | Created |
 | --- | --- |
-| `Assets/AssetReport/test-spike-b.jpg` | 2026-07-02T18:44:54.495093+00:00 |
 | `Illustrations/AssetReport/map-overworld-v2.png` | 2026-06-30T21:03:17.045913+00:00 |
 | `Illustrations/AssetReport/map-overworld.png` | 2026-06-30T20:59:30.589809+00:00 |
 | `Illustrations/AssetReport/node-design-sheet.png` | 2026-06-30T20:53:36.733032+00:00 |
